@@ -1,0 +1,50 @@
+{
+  "servers": [
+    {
+      "server": "atlas-expression-exploration",
+      "package": "aiscientist-mcp-atlas-expression-exploration",
+      "version": "0.1.0",
+      "description": "MCP server: gene expression across the cell types of a single-cell atlas (scanpy)",
+      "entry_point": "atlas-expression-exploration-mcp",
+      "image": "ghcr.io/<owner>/mcp-atlas-expression-exploration:0.1.0",
+      "tools": [
+        {
+          "name": "resolve_genes",
+          "description": "Resolve gene names (comma- or space-separated; any case; HGNC aliases, previous symbols, HGNC"
+        },
+        {
+          "name": "submit_query",
+          "description": "Start a query: resolve names, then load the full atlas on a big-memory node (Slurm, or a local"
+        },
+        {
+          "name": "query_status",
+          "description": "State of a query's full-atlas step (PENDING, RUNNING, COMPLETED, FAILED, ...). A preempted"
+        },
+        {
+          "name": "get_summary",
+          "description": "Summary rows ranked by pseudobulk CP10k. level: majorclass, celltype or region_class. Fields:"
+        },
+        {
+          "name": "plot_dotplot",
+          "description": "scanpy dot plots by major class and by cell type (PDF with editable text, plus PNG)."
+        },
+        {
+          "name": "plot_violin",
+          "description": "scanpy violin plot of per-cell log1p(CP10k), all cells; groupby defaults to the class column."
+        },
+        {
+          "name": "plot_featureplot",
+          "description": "scanpy UMAP feature plot; zero cells gray, expressing cells on top, color capped at q99 of"
+        },
+        {
+          "name": "write_report",
+          "description": "Short Markdown report: resolution, top groups with donor support, figures present, caveats."
+        },
+        {
+          "name": "list_queries",
+          "description": "Queries in this server's data directory, with their state."
+        }
+      ]
+    }
+  ]
+}

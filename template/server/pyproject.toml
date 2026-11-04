@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiscientist-mcp-__SERVER__"
+version = "0.1.0"
+description = "__DESCRIPTION__"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["aiscientist-mcp-common>=0.1"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+__SERVER__-mcp = "aiscientist_mcp.__MODULE__.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["aiscientist_mcp.*"]
+namespaces = true

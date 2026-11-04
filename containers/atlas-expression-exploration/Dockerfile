@@ -1,7 +1,7 @@
 # ghcr.io/<owner>/mcp-atlas-expression-exploration:<version>
 # Build from the repository root:
 #   docker build -f containers/atlas-expression-exploration/Dockerfile -t mcp-atlas-expression-exploration:0.0.1 .
-FROM mambaorg/micromamba:2.9.0-debian12-slim
+FROM mambaorg/micromamba:2.10.0-debian12-slim
 LABEL org.opencontainers.image.source="https://github.com/lijinbio/aiscientist-mcp" \
       org.opencontainers.image.description="MCP server atlas-expression-exploration" \
       org.opencontainers.image.licenses="MIT"

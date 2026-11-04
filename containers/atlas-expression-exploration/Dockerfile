@@ -1,6 +1,6 @@
 # ghcr.io/<owner>/mcp-atlas-expression-exploration:<version>
 # Build from the repository root:
-#   docker build -f containers/atlas-expression-exploration/Dockerfile -t mcp-atlas-expression-exploration:0.1.0 .
+#   docker build -f containers/atlas-expression-exploration/Dockerfile -t mcp-atlas-expression-exploration:0.0.1 .
 FROM mambaorg/micromamba:2.9.0-debian12-slim
 RUN micromamba install -y -n base -c conda-forge \
         python=3.13.18 scanpy=1.12.5 anndata=0.13.4 pyarrow=26.0.0 mcp=2.3.0 \

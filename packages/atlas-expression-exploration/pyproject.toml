@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiscientist-mcp-atlas-expression-exploration"
-version = "0.1.0"
+version = "0.0.1"
 description = "MCP server: gene expression across the cell types of a single-cell atlas (scanpy)"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["aiscientist-mcp-common>=0.1", "scanpy>=1.12", "anndata>=0.12", "h5py", "pandas", "numpy",
+dependencies = ["aiscientist-mcp-common>=0.0.1", "scanpy>=1.12", "anndata>=0.12", "h5py", "pandas", "numpy",
                 "scipy", "matplotlib", "pyarrow"]
 
 [project.optional-dependencies]

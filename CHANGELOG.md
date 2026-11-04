@@ -5,6 +5,12 @@ Each server is versioned on its own and tagged `<server>-vX.Y.Z`; the shared run
 
 ## [Unreleased]
 
+### Changed
+
+- Each server declares a category in `[tool.aiscientist-mcp] category`, using the skills
+  registry's category names. `servers.json` and the README list it, and `new_server.py` requires
+  `--category`. `atlas-expression-exploration` is `single-cell`.
+
 ### Added
 
 - `common` 0.1.0: server factory, path checks, Slurm/local job runner with preemption fallback and

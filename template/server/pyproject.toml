@@ -16,6 +16,10 @@ test = ["pytest"]
 [project.scripts]
 __SERVER__-mcp = "aiscientist_mcp.__MODULE__.server:main"
 
+[tool.aiscientist-mcp]
+# Category of the server; the same names as the skills registry (lijinbio/aiscientist-skills).
+category = "__CATEGORY__"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["aiscientist_mcp.*"]

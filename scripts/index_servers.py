@@ -28,9 +28,14 @@ def main():
         name = pp.parent.name
         if name == "common":
             continue
-        proj = tomllib.loads(pp.read_text())["project"]
+        meta = tomllib.loads(pp.read_text())
+        proj = meta["project"]
+        category = meta.get("tool", {}).get("aiscientist-mcp", {}).get("category")
+        if not category:
+            raise SystemExit(f"{pp}: missing [tool.aiscientist-mcp] category")
         module = name.replace("-", "_")
-        out.append({"server": name, "package": proj["name"], "version": proj["version"],
+        out.append({"server": name,
+                "category": category, "package": proj["name"], "version": proj["version"],
                     "description": proj["description"], "entry_point": next(iter(proj["scripts"])),
                     "image": f"ghcr.io/<owner>/mcp-{name}:{proj['version']}",
                     "tools": asyncio.run(tools_of(module))})  # fmt: skip

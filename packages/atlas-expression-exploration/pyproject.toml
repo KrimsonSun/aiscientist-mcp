@@ -17,6 +17,10 @@ test = ["pytest"]
 [project.scripts]
 atlas-expression-exploration-mcp = "aiscientist_mcp.atlas_expression_exploration.server:main"
 
+[tool.aiscientist-mcp]
+# Category of the server; the same names as the skills registry (lijinbio/aiscientist-skills).
+category = "single-cell"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["aiscientist_mcp.*"]

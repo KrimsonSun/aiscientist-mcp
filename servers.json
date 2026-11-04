@@ -2,6 +2,7 @@
   "servers": [
     {
       "server": "atlas-expression-exploration",
+      "category": "single-cell",
       "package": "aiscientist-mcp-atlas-expression-exploration",
       "version": "0.1.0",
       "description": "MCP server: gene expression across the cell types of a single-cell atlas (scanpy)",

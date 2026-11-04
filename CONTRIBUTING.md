@@ -10,7 +10,7 @@ for everything.
 ## Add a server
 
 ```bash
-python scripts/new_server.py my-server-name "One-line description"
+python scripts/new_server.py my-server-name "One-line description" --category single-cell
 pip install --no-deps --no-build-isolation -e packages/my-server-name
 python -m pytest packages/my-server-name/tests
 python scripts/index_servers.py        # refresh servers.json
@@ -20,6 +20,7 @@ python scripts/index_servers.py        # refresh servers.json
 
 | Topic | Rule |
 | --- | --- |
+| Category | `[tool.aiscientist-mcp] category` in the server's `pyproject.toml`, using the skills registry's category names (single-cell, literature, variants, crispr-screens, ...); folders stay flat under `packages/` |
 | Names | server: kebab-case; package `aiscientist_mcp.<snake_name>`; entry point `<server>-mcp`; tools `verb_object` snake_case |
 | Results | `@tool(server)` (structured output); return JSON with file paths and small tables; never print to stdout (use `quiet()`) |
 | Startup | import heavy libraries inside tool bodies; the server must start in seconds |

@@ -1,0 +1,12 @@
+# Default owners for everything in the repository.
+*                                        @lijinbio
+
+# Shared runtime, CI, release and the conventions every server follows.
+/packages/common/                        @lijinbio
+/.github/                                @lijinbio
+/scripts/                                @lijinbio
+/template/                               @lijinbio
+
+# Server owners: one line per server. Add reviewers as servers are added.
+/packages/atlas-expression-exploration/  @lijinbio
+/containers/atlas-expression-exploration/ @lijinbio

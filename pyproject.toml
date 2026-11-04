@@ -1,4 +1,12 @@
-# Repository-level tool settings only; each server is its own package under packages/.
+# uv workspace root (virtual: not a package). Each server is its own package under packages/.
+# CI pins every dependency with uv.lock; users install with pip or conda (see README).
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.16", "pre-commit>=4"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py311"
@@ -12,3 +20,4 @@ ignore = ["E501", "S101", "S603", "S607", "S310"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
+testpaths = ["packages"]

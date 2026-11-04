@@ -1,0 +1,23 @@
+name: Server bug
+description: A tool returns a wrong result, fails, or a server does not start
+labels: [bug]
+body:
+  - type: input
+    id: server
+    attributes:
+      label: Server and version
+      placeholder: atlas-expression-exploration 0.0.1 (image digest, if used)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The tool call (name and JSON arguments), the exact error or result, and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: MCP client and version, install route (pip, image), executor (slurm, local), OS.

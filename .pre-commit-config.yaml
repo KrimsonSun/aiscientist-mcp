@@ -1,0 +1,28 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+  - repo: local
+    hooks:
+      # Needs the servers installed in the active environment (see CONTRIBUTING.md).
+      - id: index-servers-check
+        name: servers.json and README catalog up to date
+        entry: python scripts/index_servers.py --check
+        language: system
+        pass_filenames: false
+        files: ^(packages/|scripts/index_servers\.py$|README\.md$|servers\.json$)

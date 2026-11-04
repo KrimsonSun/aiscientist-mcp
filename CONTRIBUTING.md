@@ -1,32 +1,81 @@
-# Contributing a server or a tool
+# Contributing
+
+Thanks for adding to AiScientist MCP. A server here is a set of tools someone else can register
+and trust, so the bar is that its analysis has actually been run. Participation is covered by the
+[code of conduct](CODE_OF_CONDUCT.md).
+
+## Quick start
+
+```bash
+git clone https://github.com/lijinbio/aiscientist-mcp.git && cd aiscientist-mcp
+uv sync --all-packages && uv run pytest     # or: pip install -e packages/common -e packages/<server>
+pre-commit install                           # optional: run the checks on every commit
+```
+
+### Add a server
+
+```bash
+uv run python scripts/new_server.py my-server "One-line description" --category single-cell
+$EDITOR packages/my-server/src/aiscientist_mcp/my_server/server.py
+uv sync --all-packages && uv run pytest packages/my-server
+uv run python scripts/index_servers.py       # servers.json and the README catalog
+```
+
+Then add `containers/my-server/Dockerfile`, a CODEOWNERS line and a CHANGELOG entry, and open a
+pull request.
+
+### Add a tool to an existing server
+
+Put the analysis in a function, wrap it in `server.py` with `@tool(server)`, add tests, bump the
+server's minor version, and run `index_servers.py`.
 
 ## Where a tool goes
 
 One server per **software environment and domain**: tools that share dependencies, data and a
-release cycle live in one server. Examples: `atlas-expression-exploration`, then scrna analysis,
-literature, clinical (LIRICAL/VEP), and scGPT (GPU). Do not make one server per tool, or one server
-for everything.
+release cycle live together. For example:
+- `atlas-expression-exploration` (scanpy, atlas queries);
+- an scrna-analysis server;
+- a literature server;
+- a clinical server (LIRICAL, VEP);
+- an scGPT server (GPU).
 
-## Add a server
+Don't make one server per tool, or one server for everything.
 
-```bash
-python scripts/new_server.py my-server-name "One-line description" --category single-cell
-pip install --no-deps --no-build-isolation -e packages/my-server-name
-python -m pytest packages/my-server-name/tests
-python scripts/index_servers.py        # refresh servers.json
-```
+## What makes a good tool
+
+1. **Tested code only.** Wrap analysis code from a run that completed, and say what it was tested
+   on in the server README.
+2. **Structured results.** Return JSON with file paths and small tables, never large data inline.
+3. **Fast to start.** Import heavy libraries inside the tool body. The server must start in seconds.
+4. **Long work is a job.** Use `aiscientist_mcp.common.jobs`:
+   - `submit_*` returns an id at once;
+   - `*_status` polls it;
+   - repeating a submit reuses the running or finished job.
+5. **Bounded.** Outputs go only under `$AISCI_DATA_DIR/<server>/`. Every id goes through
+   `paths.safe_id` or `child_dir`. Never build shell commands from tool arguments.
+6. **Honest.** Report resolution choices, fallbacks and failures in the result.
+
+## Package metadata
+
+| Field (`packages/<server>/pyproject.toml`) | Rule |
+| --- | --- |
+| `project.name` | `aiscientist-mcp-<server>` |
+| `project.version` | semantic version; also in `__init__.py` |
+| `project.scripts` | one entry point, `<server>-mcp` |
+| `tool.aiscientist-mcp.category` | the skills registry's category names: single-cell, literature, variants, crispr-screens, ... |
+| `tool.uv.sources` | `aiscientist-mcp-common = { workspace = true }` |
 
 ## Conventions
 
 | Topic | Rule |
 | --- | --- |
-| Category | `[tool.aiscientist-mcp] category` in the server's `pyproject.toml`, using the skills registry's category names (single-cell, literature, variants, crispr-screens, ...); folders stay flat under `packages/` |
-| Names | server: kebab-case; package `aiscientist_mcp.<snake_name>`; entry point `<server>-mcp`; tools `verb_object` snake_case |
-| Results | `@tool(server)` (structured output); return JSON with file paths and small tables; never print to stdout (use `quiet()`) |
-| Startup | import heavy libraries inside tool bodies; the server must start in seconds |
-| Long work | `submit_*` returns an id at once through `aiscientist_mcp.common.jobs`; the client polls `*_status`; repeated submits reuse a running or finished job |
-| State and paths | every call names its workspace or query id; outputs go only under `$AISCI_DATA_DIR/<server>/`; ids go through `paths.safe_id` / `child_dir` |
-| Settings | environment variables: `AISCI_*` shared, a server prefix for its own (e.g. `ATLAS_*`) |
-| Tests | unit tests on synthetic data; an in-process MCP client test (tool list, schemas, errors); a stdio test through `aiscientist-mcp`; optional real-data regression on HPC |
-| Versions | each server is versioned and tagged on its own; bump the version and add a CHANGELOG line with every change |
+| Names | server: kebab-case; module `aiscientist_mcp.<snake_name>`; tools `verb_object` in snake_case |
+| Settings | environment variables: `AISCI_*` shared (`AISCI_DATA_DIR`, `AISCI_EXECUTOR`, `AISCI_SLURM`, `AISCI_SLURM_FALLBACK`, `AISCI_JOB_PREFIX`), a server prefix for its own |
+| Tests | unit tests on synthetic data; an in-process MCP client test (tool list, schemas, errors); a stdio test through `aiscientist-mcp`; real-data regression runs reported in the PR |
 | Lint | `ruff check .` and `ruff format --check .` (settings in the root `pyproject.toml`) |
+| Hygiene | no personal paths, emails, real cluster accounts, tokens or private data; use `/path/to/...`, `<partition>`, `<account>` |
+
+## Changing an existing server
+
+Bump its version (see [versioning](docs/governance.md#versioning)), add a line to
+[CHANGELOG.md](CHANGELOG.md) under `Unreleased`, and run `index_servers.py`.

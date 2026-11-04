@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: If you use servers from this repository in your research, please cite it.
+type: software
+title: AiScientist MCP
+abstract: Model Context Protocol (MCP) servers for the AiScientist tools, for scientific data analysis. One package per server on a shared runtime; the first server explores gene expression across the cell types of single-cell atlases.
+authors:
+  - family-names: Li
+    given-names: Jin
+    affiliation: Rui Chen Lab, University of California, Irvine
+license: MIT
+repository-code: https://github.com/lijinbio/aiscientist-mcp
+version: 0.0.1
+date-released: "2026-11-04"
+keywords:
+  - model context protocol
+  - mcp
+  - agents
+  - data analysis
+  - computational biology
+  - single-cell
+  - reproducibility

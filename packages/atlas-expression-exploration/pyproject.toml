@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "aiscientist-mcp-atlas-expression-exploration"
 version = "0.0.1"
 description = "MCP server: gene expression across the cell types of a single-cell atlas (scanpy)"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = "MIT"
 dependencies = ["aiscientist-mcp-common>=0.0.1", "scanpy>=1.12", "anndata>=0.12", "h5py", "pandas", "numpy",
                 "scipy", "matplotlib", "pyarrow"]
@@ -16,6 +16,9 @@ test = ["pytest"]
 
 [project.scripts]
 atlas-expression-exploration-mcp = "aiscientist_mcp.atlas_expression_exploration.server:main"
+
+[tool.uv.sources]
+aiscientist-mcp-common = { workspace = true }
 
 [tool.aiscientist-mcp]
 # Category of the server; the same names as the skills registry (lijinbio/aiscientist-skills).

@@ -16,6 +16,9 @@ test = ["pytest"]
 [project.scripts]
 __SERVER__-mcp = "aiscientist_mcp.__MODULE__.server:main"
 
+[tool.uv.sources]
+aiscientist-mcp-common = { workspace = true }
+
 [tool.aiscientist-mcp]
 # Category of the server; the same names as the skills registry (lijinbio/aiscientist-skills).
 category = "__CATEGORY__"

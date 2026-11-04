@@ -1,0 +1,23 @@
+name: Server or tool request
+description: Propose a new server, or a new tool in an existing one
+labels: [enhancement]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Server (and tool) name, category
+      placeholder: scrna-analysis / run_pseudobulk_de, single-cell
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: Task
+      description: What should the tool do, on what inputs, returning what? Which software environment does it need?
+    validations:
+      required: true
+  - type: textarea
+    id: tested
+    attributes:
+      label: Tested run
+      description: Is there a completed run (data, tool versions, runtime) the tool can be built and regression-tested from?

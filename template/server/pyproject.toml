@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "0.0.1"
 description = "__DESCRIPTION__"
 requires-python = ">=3.11"
 license = "MIT"
-dependencies = ["aiscientist-mcp-common>=0.0.1"]
+dependencies = ["aiscientist-mcp-common>=0.0.2"]
 
 [project.optional-dependencies]
 test = ["pytest"]

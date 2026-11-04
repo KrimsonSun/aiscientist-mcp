@@ -4,10 +4,10 @@
       "server": "atlas-expression-exploration",
       "category": "single-cell",
       "package": "aiscientist-mcp-atlas-expression-exploration",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "description": "MCP server: gene expression across the cell types of a single-cell atlas (scanpy)",
       "entry_point": "atlas-expression-exploration-mcp",
-      "image": "ghcr.io/lijinbio/mcp-atlas-expression-exploration:0.0.1",
+      "image": "ghcr.io/lijinbio/mcp-atlas-expression-exploration:0.0.2",
       "path": "packages/atlas-expression-exploration",
       "tools": [
         {
@@ -16,7 +16,7 @@
         },
         {
           "name": "submit_query",
-          "description": "Start a query: resolve names, then load the full atlas on a big-memory node (Slurm, or a local"
+          "description": "Start a query: resolve names, then load the full atlas on a big-memory node and write query.h5ad"
         },
         {
           "name": "query_status",

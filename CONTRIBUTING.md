@@ -70,7 +70,7 @@ Don't make one server per tool, or one server for everything.
 | Topic | Rule |
 | --- | --- |
 | Names | server: kebab-case; module `aiscientist_mcp.<snake_name>`; tools `verb_object` in snake_case |
-| Settings | environment variables: `AISCI_*` shared (`AISCI_DATA_DIR`, `AISCI_EXECUTOR`, `AISCI_SLURM`, `AISCI_SLURM_FALLBACK`, `AISCI_JOB_PREFIX`), a server prefix for its own |
+| Settings | environment variables: `AISCI_*` shared (`AISCI_DATA_DIR`, `AISCI_EXECUTOR` (`slurm`, `local`, `inline`), `AISCI_SLURM`, `AISCI_SLURM_FALLBACK`, `AISCI_JOB_PREFIX`), a server prefix for its own |
 | Tests | unit tests on synthetic data; an in-process MCP client test (tool list, schemas, errors); a stdio test through `aiscientist-mcp`; real-data regression runs reported in the PR |
 | Lint | `ruff check .` and `ruff format --check .` (settings in the root `pyproject.toml`) |
 | Hygiene | no personal paths, emails, real cluster accounts, tokens or private data; use `/path/to/...`, `<partition>`, `<account>` |

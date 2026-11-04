@@ -40,7 +40,7 @@ The catalog is generated from each server's `pyproject.toml` and tool list by
 
 | Server | Version | Tools | Image |
 | --- | --- | --- | --- |
-| [`atlas-expression-exploration`](packages/atlas-expression-exploration) | 0.0.1 | `resolve_genes`, `submit_query`, `query_status`, `get_summary`, `plot_dotplot`, `plot_violin`, `plot_featureplot`, `write_report`, `list_queries` | `ghcr.io/lijinbio/mcp-atlas-expression-exploration:0.0.1` |
+| [`atlas-expression-exploration`](packages/atlas-expression-exploration) | 0.0.2 | `resolve_genes`, `submit_query`, `query_status`, `get_summary`, `plot_dotplot`, `plot_violin`, `plot_featureplot`, `write_report`, `list_queries` | `ghcr.io/lijinbio/mcp-atlas-expression-exploration:0.0.2` |
 
 <!-- END SERVERS -->
 
@@ -54,21 +54,26 @@ never `main`.
 ```bash
 mamba create -y -n aiscientist_mcp -c conda-forge python=3.13 scanpy=1.12.5 anndata=0.13.4 pyarrow=26.0.0 mcp=2.3.0
 conda activate aiscientist_mcp
-pip install --no-deps "git+https://github.com/lijinbio/aiscientist-mcp@common-v0.0.1#subdirectory=packages/common"
-pip install --no-deps "git+https://github.com/lijinbio/aiscientist-mcp@atlas-expression-exploration-v0.0.1#subdirectory=packages/atlas-expression-exploration"
+pip install --no-deps "git+https://github.com/lijinbio/aiscientist-mcp@common-v0.0.2#subdirectory=packages/common"
+pip install --no-deps "git+https://github.com/lijinbio/aiscientist-mcp@atlas-expression-exploration-v0.0.2#subdirectory=packages/atlas-expression-exploration"
 aiscientist-mcp --server atlas-expression-exploration-mcp tools
 ```
 
 ### Container image
 
 ```bash
-apptainer pull mcp-atlas-expression-exploration_0.0.1.sif docker://ghcr.io/lijinbio/mcp-atlas-expression-exploration:0.0.1
-apptainer exec --bind /path/to/data mcp-atlas-expression-exploration_0.0.1.sif atlas-expression-exploration-mcp
+apptainer pull mcp-atlas-expression-exploration_0.0.2.sif docker://ghcr.io/lijinbio/mcp-atlas-expression-exploration:0.0.2
+apptainer exec --bind /path/to/data mcp-atlas-expression-exploration_0.0.2.sif atlas-expression-exploration-mcp
 ```
 
-The image runs the server and its jobs. Inside a Slurm job, set `AISCI_EXECUTOR=local`; outside
-one, set `AISCI_JOB_PREFIX` to the `apptainer exec ...` prefix, so that submitted jobs run in the
-same image.
+The image runs the server and its jobs. Choose the executor (`AISCI_EXECUTOR`) by how the server
+is called:
+
+| Caller | Executor |
+| --- | --- |
+| Persistent server on a login node (Claude Code, an MCP session) | `slurm` (default), with `AISCI_JOB_PREFIX` set to the `apptainer exec ...` prefix so that jobs run in the same image |
+| Persistent server inside a Slurm allocation | `local` |
+| One-shot calls, each in a fresh process or container (`apptainer exec` per call, an agent sandbox) | `inline`, or `slurm` with a job prefix; a `local` job would end with the call |
 
 ### Claude Code
 

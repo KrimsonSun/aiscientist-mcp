@@ -17,6 +17,27 @@ versioned on its own ([Semantic Versioning](https://semver.org/)) and released w
 - A README catalog grouped by category, generated with `servers.json` by `index_servers.py`
   (`--check` in CI).
 
+## common 0.0.2 - 2026-11-04
+
+### Added
+
+- `AISCI_EXECUTOR=inline` runs a job in the foreground, so `submit` returns when it ends. Use it
+  when each tool call is a fresh process or container.
+
+### Fixed
+
+- A local job whose process is gone without `done.json` was reported RUNNING if its pid was reused,
+  for example in a new container PID namespace. Jobs are now identified by host, pid and start
+  time, and a lost job is reported FAILED with a note.
+- An unknown `AISCI_EXECUTOR` value is rejected.
+
+## atlas-expression-exploration 0.0.2 - 2026-11-04
+
+### Changed
+
+- Requires `aiscientist-mcp-common>=0.0.2`. `submit_query` refreshes a stale state before it reuses
+  a query, so a lost local job is resubmitted.
+
 ## common 0.0.1 - 2026-11-04
 
 ### Added

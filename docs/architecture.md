@@ -18,7 +18,7 @@
 | --- | --- |
 | `server` | `make_server`, `@tool(server)` (structured output), `quiet()` (stdout to stderr), `run_stdio` |
 | `paths` | `safe_id`, `child_dir`: every id or folder argument goes through these |
-| `jobs` | `submit` / `status` / `record_done`: Slurm or local executor, resubmission with `AISCI_SLURM_FALLBACK` after a preemption, `AISCI_JOB_PREFIX` (e.g. `apptainer exec ... image.sif`) |
+| `jobs` | `submit` / `status` / `record_done`: Slurm, local or inline executor, resubmission with `AISCI_SLURM_FALLBACK` after a preemption, `AISCI_JOB_PREFIX` (e.g. `apptainer exec ... image.sif`) |
 | `client` | `aiscientist-mcp --server <cmd> tools|call`: a stdio MCP client for shells and batch scripts |
 
 ## Long-running tools
@@ -32,8 +32,11 @@ A tool that needs minutes or hours, such as loading a 19 GB atlas, never blocks 
 ## Deployment
 
 - **Local / Claude Code**: stdio, the package in a conda env, jobs submitted with sbatch.
-- **Container**: the server image pinned by digest. Inside a Slurm job, use `AISCI_EXECUTOR=local`;
-  outside one, use `AISCI_JOB_PREFIX` so jobs run in the same image.
+- **Container**: the server image pinned by digest. A persistent server inside a Slurm allocation
+  uses `AISCI_EXECUTOR=local`; on a login node, `slurm` with `AISCI_JOB_PREFIX` so jobs run in the
+  same image. When each tool call is a fresh container (`apptainer exec` per call, an agent
+  sandbox), use `inline`: a detached `local` job would be killed with the container's PID
+  namespace.
 - **Shared service** (AiScientist, a chatbot): Streamable HTTP behind authentication, on a service
   host that submits jobs. AiScientist needs an MCP client bridge that wraps each tool for its
   planner.

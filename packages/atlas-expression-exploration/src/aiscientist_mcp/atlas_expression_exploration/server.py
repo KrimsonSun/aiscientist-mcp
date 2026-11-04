@@ -93,9 +93,10 @@ def resolve_genes(genes: str, atlas: str = "") -> dict[str, Any]:
 
 @tool(server)
 def submit_query(genes: str, atlas: str = "", rerun: bool = False) -> dict[str, Any]:
-    """Start a query: resolve names, then load the full atlas on a big-memory node (Slurm, or a local
-    background process) and write query.h5ad plus summary tables. Returns at once with a query_id;
-    poll query_status. Reuses a finished or running query unless rerun=True."""
+    """Start a query: resolve names, then load the full atlas on a big-memory node and write query.h5ad
+    plus summary tables. With the Slurm or local executor it returns at once with a query_id (poll
+    query_status); with the inline executor it returns when the step ends. Reuses a finished or
+    running query unless rerun=True."""
     cfg, jc = Settings.from_env(), _job_cfg()
     with quiet():
         atlas = _atlas(cfg, atlas)
@@ -107,7 +108,7 @@ def submit_query(genes: str, atlas: str = "", rerun: bool = False) -> dict[str, 
         qdir = child_dir(cfg.data_dir, qid, "query_id")
         qdir.mkdir(parents=True, exist_ok=True)
         res.to_csv(qdir / "gene_resolution.tsv", sep="\t", index=False)
-        state = jobs.read_state(qdir)
+        state = jobs.status(jc, qdir) if (qdir / "state.json").exists() else {}
         if rerun or state.get("state") not in ("COMPLETED", "PENDING", "RUNNING"):
             jobs.write_state(qdir, {"query_id": qid, "atlas": atlas, "genes": hits})
             cmd = [sys.executable, "-m", "aiscientist_mcp.atlas_expression_exploration.extract", "--h5ad", atlas,

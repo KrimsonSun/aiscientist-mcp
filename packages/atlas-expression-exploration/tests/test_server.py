@@ -32,7 +32,7 @@ def test_tools_end_to_end(atlas, tmp_path, monkeypatch):
             r = (await c.call_tool("resolve_genes", {"genes": "LRAT, cralbp"})).structured_content
             assert [x["atlas_gene"] for x in r["resolution"]] == ["LRAT", "RLBP1"]
             qid = (await c.call_tool("submit_query", {"genes": "LRAT,cralbp"})).structured_content["query_id"]
-            for _ in range(120):
+            for _ in range(600):  # a cold scanpy import on a network filesystem can take minutes
                 st = (await c.call_tool("query_status", {"query_id": qid})).structured_content
                 if st["state"] in ("COMPLETED", "FAILED"):
                     break

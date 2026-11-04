@@ -28,7 +28,7 @@ dev = [
 
 [[package]]
 name = "aiscientist-mcp-atlas-expression-exploration"
-version = "0.0.2"
+version = "0.0.3"
 source = { editable = "packages/atlas-expression-exploration" }
 dependencies = [
     { name = "aiscientist-mcp-common" },

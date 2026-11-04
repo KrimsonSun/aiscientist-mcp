@@ -9,7 +9,7 @@ authors:
     affiliation: Rui Chen Lab, University of California, Irvine
 license: MIT
 repository-code: https://github.com/lijinbio/aiscientist-mcp
-version: 0.0.2
+version: 0.0.3
 date-released: "2026-11-04"
 keywords:
   - model context protocol

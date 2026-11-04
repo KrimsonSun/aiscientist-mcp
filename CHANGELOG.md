@@ -31,6 +31,14 @@ versioned on its own ([Semantic Versioning](https://semver.org/)) and released w
   time, and a lost job is reported FAILED with a note.
 - An unknown `AISCI_EXECUTOR` value is rejected.
 
+## atlas-expression-exploration 0.0.3 - 2026-11-04
+
+### Fixed
+
+- The image had no Helvetica-metric font, so PNG text and figure layout used DejaVu Sans while
+  the PDF text was Helvetica. The image now installs Nimbus Sans (`fonts-urw-base35`), and the build
+  fails if the figure font does not resolve to it. The Python code is unchanged from 0.0.2.
+
 ## atlas-expression-exploration 0.0.2 - 2026-11-04
 
 ### Changed

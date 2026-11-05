@@ -10,3 +10,5 @@
 # Server owners: one line per server. Add reviewers as servers are added.
 /packages/atlas-expression-exploration/  @lijinbio
 /containers/atlas-expression-exploration/ @lijinbio
+/packages/retigene-rag/                   @lijinbio @KrimsonSun
+/containers/retigene-rag/                 @lijinbio @KrimsonSun

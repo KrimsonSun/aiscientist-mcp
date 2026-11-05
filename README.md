@@ -36,6 +36,12 @@ The catalog is generated from each server's `pyproject.toml` and tool list by
 
 <!-- BEGIN SERVERS -->
 
+### literature
+
+| Server | Version | Tools | Image |
+| --- | --- | --- | --- |
+| [`retigene-rag`](packages/retigene-rag) | 0.0.1 | `search_sentences`, `search_passages`, `read_passage`, `grade_genes`, `get_grades`, `get_gene_evidence`, `evaluate`, `list_gradings` | `ghcr.io/lijinbio/mcp-retigene-rag:0.0.1` |
+
 ### single-cell
 
 | Server | Version | Tools | Image |

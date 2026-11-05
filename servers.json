@@ -47,6 +47,50 @@
           "description": "Queries in this server's data directory, with their state."
         }
       ]
+    },
+    {
+      "server": "retigene-rag",
+      "category": "literature",
+      "package": "aiscientist-mcp-retigene-rag",
+      "version": "0.0.1",
+      "description": "MCP server: answer a gene-property question from the RetiGene papers, with a verbatim quote, PMID and page per gene",
+      "entry_point": "retigene-rag-mcp",
+      "image": "ghcr.io/lijinbio/mcp-retigene-rag:0.0.1",
+      "path": "packages/retigene-rag",
+      "tools": [
+        {
+          "name": "search_sentences",
+          "description": "Keyword search over every sentence of the corpus. Returns ALL sentences that hold any of the terms, one"
+        },
+        {
+          "name": "search_passages",
+          "description": "Search by meaning: the passages (about 300 words each) whose embedding is nearest the query, as written,"
+        },
+        {
+          "name": "read_passage",
+          "description": "The whole passage around a sentence (pmid and chunk as search_sentences gives them), with its paper's"
+        },
+        {
+          "name": "grade_genes",
+          "description": "Grade every gene that the sentences holding `terms` name (the words you searched with search_sentences,"
+        },
+        {
+          "name": "get_grades",
+          "description": "The gene table of a grading, A first, then B, then N (by papers within a grade): gene, grade, claim,"
+        },
+        {
+          "name": "get_gene_evidence",
+          "description": "The sentence table of a grading: one row per evidence sentence that names an A or B gene, with gene,"
+        },
+        {
+          "name": "evaluate",
+          "description": "Score a grading against a graded reference (default: the curator review of 2026-11-04, confirmed by Dr."
+        },
+        {
+          "name": "list_gradings",
+          "description": "Gradings in this server's data directory, with their question, gene count and grades."
+        }
+      ]
     }
   ]
 }

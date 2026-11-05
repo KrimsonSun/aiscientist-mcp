@@ -65,13 +65,15 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: python -m pip install ./packages/common ./packages/atlas-expression-exploration
       - run: aiscientist-mcp --server atlas-expression-exploration-mcp tools | python -c 'import json, sys; assert len(json.load(sys.stdin)) == 9'
+      - run: python -m pip install ./packages/retigene-rag
+      - run: aiscientist-mcp --server retigene-rag-mcp tools | python -c 'import json, sys; assert len(json.load(sys.stdin)) == 8'
 
   container:
     name: Container (${{ matrix.server }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        server: [atlas-expression-exploration]
+        server: [atlas-expression-exploration, retigene-rag]
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4

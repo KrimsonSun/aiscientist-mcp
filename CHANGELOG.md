@@ -8,15 +8,19 @@ versioned on its own ([Semantic Versioning](https://semver.org/)) and released w
 
 ### Added
 
-- `retigene-rag` 0.0.1: search tools over the RetiGene corpus for an agent, which writes its own searches.
-  Keyword search over every sentence (`search_sentences`) leads, with embedding search over passages
-  (`search_passages`) and `read_passage` beside it. `grade_genes` grades every gene the sentences holding the
-  agent's terms name: Claude Haiku answers the lab's rule checks, and Claude Sonnet reviews the A and B genes.
-  It returns a gene table and a sentence table, each row with a verbatim quote, PMID and page. `evaluate`
-  scores a grading against the curator reference of 2026-11-04, which is bundled. `eval/agent_eval.py` runs
-  the 15-gene test over stdio. Tested with Claude Haiku as the agent on "What are haploinsufficient genes in
-  RetiGene papers?" and a reworded question: 15 of 15 A genes in all three runs, at $0.46-0.51 and about
-  1 minute per question.
+- `retigene-rag` 0.0.1: questions about the RetiGene papers (RCHENLAB/AiScientist #95). Search tools for an
+  agent: keyword search over every sentence (`search_sentences`), chunk co-embedding search with an optional
+  keyword filter (`search_passages`) and `read_passage`. The corpus-wide curation of haploinsufficient genes
+  (`submit_curation` / `curation_status`, through `common.jobs`) reads every sentence that states a dosage
+  mechanism or holds the agent's terms, and grades each gene from its own sentences with the sentence rules
+  of #99 (Ziyao Ma): the check model reads each gene twice, the review model grades A / B / N by the
+  curator's definitions, and the code checks every quote and bounds the grade. `get_genes` and
+  `get_evidence` give the gene and sentence tables (verbatim quote, PMID, page, sentence id),
+  `write_report` a Markdown report, `evaluate` the score against the bundled curator reference of
+  2026-11-04 (`reference_genes_reviewed.csv`, grades only). Claude or any OpenAI-compatible endpoint (the
+  lab's shared model) reads, set by environment variables; replies are cached, and a curation with the same
+  terms, rules, models and corpus is reused. The index is mounted read-only (the AiScientist shared dataset
+  `retigene`); the image holds the query embedding model.
 
 - Community and maintenance files following the AiScientist skills registry: code of conduct,
   security policy, citation, editor and pre-commit configuration, CODEOWNERS, Dependabot, issue

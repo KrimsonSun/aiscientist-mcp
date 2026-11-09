@@ -1,12 +1,12 @@
 """The 15-gene test (RCHENLAB/AiScientist issue 99): Claude answers a RetiGene question with only this server's
-tools and instructions, and the grading it made is scored against the curator reference.
+tools and instructions, and the curation it made is scored against the curator reference.
 
     python eval/agent_eval.py --out run.json [--model claude-haiku-5-5] [--question "..."]
 
 The server is started over stdio, as an MCP client starts it, so this tests what Claude Code would see. It needs
 ANTHROPIC_API_KEY (ANTHROPIC_BASE_URL for a proxy) and the server's settings (RETIGENE_INDEX, AISCI_DATA_DIR,
-HF_HOME, ...) in the environment. The report holds every tool call, the agent's tokens and cost, the grading's
-cost, the score and the agent's final answer.
+AISCI_EXECUTOR=inline, ...) in the environment. The report holds every tool call, the agent's tokens and cost, the
+curation's time, calls, tokens and cost, the score and the agent's final answer.
 """
 
 import argparse
@@ -38,7 +38,7 @@ async def run(a) -> dict:
                                    env=dict(os.environ))  # fmt: skip
     claude = anthropic.Anthropic(timeout=600.0, max_retries=3)
     use = {"input_tokens": 0, "output_tokens": 0, "cache_write_tokens": 0, "cache_read_tokens": 0, "calls": 0}
-    log, gradings, grading_cost, answer, t0 = [], [], {}, "", time.time()
+    log, curations, curation_total, answer, t0 = [], [], {}, "", time.time()
     async with Client(params, read_timeout_seconds=1800) as c:
         tools = [{"name": t.name, "description": t.description or "", "input_schema": t.input_schema}
                  for t in (await c.list_tools()).tools]  # fmt: skip
@@ -65,9 +65,11 @@ async def run(a) -> dict:
                 r = await c.call_tool(b.name, b.input)
                 payload = r.structured_content if r.structured_content is not None else " ".join(
                     getattr(x, "text", "") for x in r.content)  # fmt: skip
-                if b.name == "grade_genes" and not r.is_error and isinstance(payload, dict):
-                    gradings.append(payload["grading_id"])
-                    grading_cost[payload["grading_id"]] = payload["total"]["cost_usd"]  # cumulative over retries
+                done = isinstance(payload, dict) and payload.get("state") == "COMPLETED"
+                if b.name in ("submit_curation", "curation_status") and not r.is_error and done:
+                    curations.append(payload["curation_id"])
+                    if not payload.get("reused"):
+                        curation_total[payload["curation_id"]] = payload["total"]
                 entry = {"turn": turn, "tool": b.name, "args": b.input, "error": r.is_error,
                          "total_sentences": payload.get("total_sentences") if isinstance(payload, dict) else None}  # fmt: skip
                 log.append(entry)
@@ -75,16 +77,25 @@ async def run(a) -> dict:
                 results.append({"type": "tool_result", "tool_use_id": b.id, "is_error": bool(r.is_error),
                                 "content": json.dumps(payload, ensure_ascii=False)})  # fmt: skip
             messages.append({"role": "user", "content": results})
-        score = (await c.call_tool("evaluate", {"grading_id": gradings[-1]})).structured_content if gradings else None
-        grades = (await c.call_tool("get_grades", {"grading_id": gradings[-1], "grades": "A"})).structured_content \
-            if gradings else {"rows": []}  # fmt: skip
+        cid = curations[-1] if curations else None
+        score = (await c.call_tool("evaluate", {"curation_id": cid})).structured_content if cid else None
+        grades = (
+            (await c.call_tool("get_genes", {"curation_id": cid, "grades": "A"})).structured_content
+            if cid
+            else {"rows": []}
+        )
     agent_cost = _cost(use, a.model)
-    grading_total = sum(grading_cost.values())
+    cur = {
+        k: sum(t.get(k, 0) for t in curation_total.values())
+        for k in ("calls", "cached", "input_tokens", "output_tokens", "cost_usd", "seconds")
+    }
     a_genes = [r["gene"] for r in grades["rows"]]
     named = sum(bool(re.search(r"\b" + re.escape(g) + r"\b", answer)) for g in a_genes)
     return {"question": a.question, "model": a.model, "effort": a.effort, "agent": {**use, "cost_usd": round(agent_cost, 4)},
-            "grading_cost_usd": round(grading_total, 4), "total_cost_usd": round(agent_cost + grading_total, 4),
-            "seconds": round(time.time() - t0), "tool_calls": log, "grading_id": gradings[-1] if gradings else None,
+            "curation": cur, "total_cost_usd": round(agent_cost + cur["cost_usd"], 4),
+            "total_calls": use["calls"] + cur["calls"], "total_input_tokens": use["input_tokens"] + use["cache_write_tokens"]
+            + use["cache_read_tokens"] + cur["input_tokens"], "total_output_tokens": use["output_tokens"] + cur["output_tokens"],
+            "seconds": round(time.time() - t0), "tool_calls": log, "curation_id": cid,
             "score": score, "answer": answer,
             "A_genes_named_in_answer": f"{named}/{len(a_genes)}"}  # fmt: skip
 
@@ -100,10 +111,10 @@ def main():
     rep = asyncio.run(run(a))
     a.out.write_text(json.dumps(rep, indent=1, ensure_ascii=False) + "\n")
     s = rep["score"] or {}
-    print(json.dumps({k: rep[k] for k in ("model", "total_cost_usd", "grading_cost_usd", "seconds", "A_genes_named_in_answer")}
-                     | {"agent_cost_usd": rep["agent"]["cost_usd"], "agent_turns": rep["agent"]["calls"]}))  # fmt: skip
+    print(json.dumps({k: rep[k] for k in ("model", "total_cost_usd", "total_calls", "seconds", "A_genes_named_in_answer")}
+                     | {"agent_cost_usd": rep["agent"]["cost_usd"], "agent_turns": rep["agent"]["calls"], "curation": rep["curation"]}))  # fmt: skip
     print(json.dumps({k: s.get(k) for k in ("A_recall", "A_recall_ocular", "A_recall_syndromic", "A_missed",
-                                            "B_listed_apart", "B_listed_as_A", "N_listed", "A_outside_reference", "passes")}))  # fmt: skip
+                                            "B_listed_apart", "B_graded", "N_listed", "A_outside_reference", "passed")}))  # fmt: skip
 
 
 if __name__ == "__main__":

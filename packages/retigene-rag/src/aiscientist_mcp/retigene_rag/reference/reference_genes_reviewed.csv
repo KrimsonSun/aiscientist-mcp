@@ -1,0 +1,25 @@
+gene,review_grade,claim,phenotype_kind,in_16_without_syndrome,phenotype,pmid,page,sentence_id,papers_with_dosage_wording,pmids_with_dosage_wording,clingen_hi_score_2026-11-04
+BMP4,A,haploinsufficient,other_ocular,yes,microphthalmia,23167593,2,23167593:3:3,4,23167593|19864492|21340693|35741851,3
+CFH,A,haploinsufficient,retinal,yes,dominant EOMD,30905644,10,30905644:23:0,1,30905644,not listed
+COL2A1,A,haploinsufficient,syndromic_with_eye,no,Stickler syndrome type I,18179896,1,18179896:0:4,2,18179896|35741851,3
+CTNNB1,A,haploinsufficient,retinal,yes,FEVR,28575650,4,28575650:9:4,2,28575650|33350591,3
+JAG1,A,haploinsufficient,syndromic_with_eye,no,Alagille syndrome (AGS),12239725,1,12239725:0:2,2,12239725|9207787,3
+NR2F1,A,haploinsufficient,syndromic_with_eye,no,Optic atrophy ... BBSOAS,26986877,4,26986877:11:0,3,26986877|23300014|24462372,3
+OPA1,A,haploinsufficient,other_ocular,yes,"dominant optic atrophy (DOA plus / DOAD, from the item's context)",31609081,1,31609081:1:5,5,31609081|21636302|26539208|32219868|34056600,not listed
+OTX2,A,haploinsufficient,other_ocular,yes,structural eye malformations,24906020,1,24906020:0:3,3,24906020|15846561|25293953,3
+PAX2,A,haploinsufficient,syndromic_with_eye,no,Papillorenal syndrome,29973660,2,29973660:2:2,2,29973660|7795640,3
+PAX6,A,haploinsufficient,other_ocular,yes,Classic aniridia,15846561,1,15846561:1:1,7,15846561|15028672|15629294|24906020|25574057|7795640|8640214,not listed
+PRPF31,A,haploinsufficient,retinal,yes,RP,24419317,7,24419317:15:12,8,24419317|12714658|18450588|20232351|33576794|36672815|37809982|40674075,not listed
+PRPF4,A,haploinsufficient,retinal,yes,RP (adRP),24419317,1,24419317:1:8,2,24419317|25383878,not listed
+PRPH2,A,haploinsufficient,retinal,yes,autosomal dominant retinal dystrophies,39978411,2,39978411:3:9,4,39978411|20159111|25681578|32531846,not listed
+SHH,A,haploinsufficient,other_ocular,yes,isolated microphthalmia with coloboma,19533790,1,19533790:0:1,1,19533790,3
+UCHL1,A,haploinsufficient,syndromic_with_eye,no,"autosomal dominant neurologic disorder presenting with spasticity, cerebellar and/or sensory ataxia, polyneuropathy, and often optic atrophy",35986737,8,35986737:20:2,1,35986737,not listed
+COL11A1,B,haploinsufficient,syndromic_with_eye,no,Stickler syndrome type II (fibrillar vitreous degeneration),18179896,1,18179896:1:0,2,18179896|35741851,not listed
+CRX,B,haploinsufficient,retinal,yes,abnormal foveal development,29568065,1,29568065:0:14,4,29568065|9390563|9427255|9537410,1
+FZD4,B,haploinsufficient,retinal,yes,FEVR (retinal vasculature development),15223780,7,15223780:22:8,3,15223780|15981244|27316669,3
+RCBTB1,B,haploinsufficient,retinal,yes,Coats disease or familial exudative vitreoretinopathy (FEVR),27486781,5,27486781:10:9,5,27486781|26908610|28575650|33497368|35133048,not listed
+RP1,B,haploinsufficient,retinal,yes,AD-RP,33576794,8,33576794:21:10,4,33576794|11468273|16280978|30913292,not listed
+SOX2,B,haploinsufficient,other_ocular,yes,structural eye malformations,24906020,1,24906020:0:3,2,24906020|12612584,3
+SOX5,B,haploinsufficient,syndromic_with_eye,no,Lamb-Shaffer syndrome (optic nerve atrophy; ophthalmic findings in 57%),40180173,1,40180173:0:5,2,40180173|31628467,3
+GATAD2B,N,haploinsufficient,syndromic_with_eye,no,syndrome characterised by severe ID ... deeply set eyes ... strabismus,23644463,6,23644463:15:6,2,23644463|31949314,3
+VCAN,N,haploinsufficient,other_ocular,yes,Wagner syndrome,21738396,2,21738396:2:5,1,21738396,1

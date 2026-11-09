@@ -64,31 +64,39 @@
         },
         {
           "name": "search_passages",
-          "description": "Search by meaning: the passages (about 300 words each) whose embedding is nearest the query, as written,"
+          "description": "Search by meaning (chunk co-embedding, PubMedBERT): the passages (about 300 words each) nearest the query,"
         },
         {
           "name": "read_passage",
           "description": "The whole passage around a sentence (pmid and chunk as search_sentences gives them), with its paper's"
         },
         {
-          "name": "grade_genes",
-          "description": "Grade every gene that the sentences holding `terms` name (the words you searched with search_sentences,"
+          "name": "submit_curation",
+          "description": "The corpus-wide curation of haploinsufficient genes. Reads EVERY sentence of the corpus that states a"
         },
         {
-          "name": "get_grades",
-          "description": "The gene table of a grading, A first, then B, then N (by papers within a grade): gene, grade, claim,"
+          "name": "curation_status",
+          "description": "State of a curation (PENDING, RUNNING, COMPLETED, FAILED, ...), with the genes graded so far; when"
         },
         {
-          "name": "get_gene_evidence",
-          "description": "The sentence table of a grading: one row per evidence sentence that names an A or B gene, with gene,"
+          "name": "get_genes",
+          "description": "The gene table of a curation, A first, then B, then N and unresolved: gene, grade, phenotype kind and"
+        },
+        {
+          "name": "get_evidence",
+          "description": "The sentence table of a curation: one row per sentence read for a gene, with the checks behind its grade"
         },
         {
           "name": "evaluate",
-          "description": "Score a grading against a graded reference (default: the curator review of 2026-11-04, confirmed by Dr."
+          "description": "Score a curation against a graded reference (default: the curator review of 2026-11-04, confirmed by Dr."
         },
         {
-          "name": "list_gradings",
-          "description": "Gradings in this server's data directory, with their question, gene count and grades."
+          "name": "write_report",
+          "description": "A Markdown report of a curation: the A genes, then the B genes apart, each with its quote, PMID, page and"
+        },
+        {
+          "name": "list_curations",
+          "description": "Curations in this server's data directory, with their question, state, grades and cost."
         }
       ]
     }

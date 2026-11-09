@@ -40,7 +40,7 @@ The catalog is generated from each server's `pyproject.toml` and tool list by
 
 | Server | Version | Tools | Image |
 | --- | --- | --- | --- |
-| [`retigene-rag`](packages/retigene-rag) | 0.0.1 | `search_sentences`, `search_passages`, `read_passage`, `grade_genes`, `get_grades`, `get_gene_evidence`, `evaluate`, `list_gradings` | `ghcr.io/lijinbio/mcp-retigene-rag:0.0.1` |
+| [`retigene-rag`](packages/retigene-rag) | 0.0.1 | `search_sentences`, `search_passages`, `read_passage`, `submit_curation`, `curation_status`, `get_genes`, `get_evidence`, `evaluate`, `write_report`, `list_curations` | `ghcr.io/lijinbio/mcp-retigene-rag:0.0.1` |
 
 ### single-cell
 

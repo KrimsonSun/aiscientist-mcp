@@ -99,4 +99,4 @@ load and the curation. Input tokens include the cached system prompts (about thr
   `search_passages` 15 s per call (most of it the corpus and model load), and its query vectors equal the
   stored chunk vectors (cosine 1.000000 on 8 passages).
 
-The offline tests use a stand-in model and embedder (`offline-test`): 10 tests, about 10 s.
+The offline tests use a stand-in model and embedder (`offline-test`): 11 tests, about 10 s.

@@ -152,3 +152,22 @@ def test_fast_reference_entry_check_matches_the_plain_one():
         n = nz(q)
         plain = (len(n) > 30 and any(n in x or x in n for x in tl)) or bool(grading.AUTHOR_LIST.search(q.strip()))
         assert fast(q) == plain, q
+
+
+def test_a_shared_dataset_version_is_an_index(index):
+    """A version of the AiScientist shared dataset retigene is the index folder plus the store's manifest.json,
+    SHA256SUMS and CHANGELOG.md: the server reads it in place and names the version it read."""
+    import json
+
+    from aiscientist_mcp.retigene_rag.settings import Index
+
+    plain = Index(index, index / "unused").check()
+    before = plain.fingerprint()
+    assert plain.version() == {"fingerprint": before}
+    store = {"dataset": "retigene", "version": "v2026.11", "version_uuid": "u-1", "files": []}
+    (index / "manifest.json").write_text(json.dumps(store))
+    (index / "SHA256SUMS").write_text("")
+    v = Index(index, index / "unused").version()
+    assert v["dataset"] == "retigene" and v["version"] == "v2026.11" and v["version_uuid"] == "u-1"
+    assert v["fingerprint"].startswith("sha256:") and v["fingerprint"] != before
+    assert Index(index, index / "unused").manifest.name == "manifest.csv"  # the papers, not the store's manifest

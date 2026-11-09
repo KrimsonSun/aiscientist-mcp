@@ -69,6 +69,34 @@ python eval/agent_eval.py --out rw.json --question "Which genes cause eye diseas
 python eval/curation_eval.py --out cur.json
 ```
 
-RESULTS
+Tested on the lab's copy of the index (1,736 papers, 426,706 sentences) with anthropic 1.13.0, mcp 2.3.0 and
+Python 3.13.3, ten runs each with an empty reply cache. The check model was Claude Haiku 5.5 at low effort,
+reading each gene twice. Time and cost are for the whole question: agent turns, server start, the corpus
+load and the curation. Input tokens include the cached system prompts (about three quarters).
 
-The offline tests use a stand-in model and embedder (`offline-test`): 8 tests, about 10 s.
+| Question | Agent | Review model | Runs | Sentences, genes | Time | Model calls | Tokens in / out | Cost | A genes (ocular, syndromic) | B listed apart | N listed |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| "What are haploinsufficient genes in RetiGene papers?" | Claude Haiku, 4 turns | Haiku | 3 | 474, 301 | 194-204 s | 714-717 | 2.24 M / 0.46 M | $0.31 | 15/15 (10/10, 5/5) | 7/7 | none |
+| the same | Claude Sonnet, 4 turns | Haiku | 3 | 474, 301 | 190-197 s | 719-720 | 2.25 M / 0.46-0.47 M | $0.36-0.37 | 15/15 (10/10, 5/5) | 7/7 | none |
+| "Which genes cause eye disease when one copy is lost, according to the RetiGene papers?" | Claude Haiku | Haiku | 1 | 517, 328 | 206 s | 770 | 2.38 M / 0.48 M | $0.32 | 15/15 (10/10, 5/5) | 7/7 | none |
+| the same | Claude Sonnet | Haiku | 1 | 517, 328 | 195 s | 769 | 2.38 M / 0.49 M | $0.39 | 15/15 (10/10, 5/5) | 7/7 | none |
+| the first question, no agent | none | Haiku | 1 | 474, 301 | 156 s | 712 | 2.24 M / 0.47 M | $0.31 | 15/15 (10/10, 5/5) | 7/7 | none |
+| the same | none | Claude Sonnet 5.5 | 1 | 474, 301 | 157 s | 711 | 2.24 M / 0.45 M | $0.78 | 15/15 (10/10, 5/5) | 7/7 | none |
+| v3 (the RetiGene scan of 2026-10-20), for comparison | | | | 1,537 passages | 10 min | 1,537 | | $1.08 | 18 of the 24-gene reference | | |
+
+- **What the agents did.** Every agent searched "haploinsufficien" with variants of its own ("one functional
+  copy", "reduced dosage", "dosage sensitiv", "one copy") and called `submit_curation` once with them. The
+  rules' own dosage wording already covers most of these: the first question reads the same 474 sentences
+  with or without them, and "one copy" adds 43 for the reworded one.
+- **B genes.** All 7 were kept apart in every run, graded B, except RP1 graded N once.
+- **A genes outside the reference.** ABCA4 and FSCN2 in every run; CLN8 and FH (the CFH protein, factor H,
+  read as a gene) in some. They are not in the curator's 24 and have not been checked by a curator.
+- **Reuse.** The same curation asked again answers at once from the kept result. With `rerun=true` and the
+  reply cache it takes 17 s and no model call, with an identical gene table.
+- **Estimate.** `estimate_only` gave $0.25-0.40, 678-753 calls and 2.1-3.8 min for the first question.
+- **The image.** Built from `containers/retigene-rag/Dockerfile` (2.68 GB) and run one container per call
+  with the index mounted read-only, as AiScientist runs a pinned server: `search_sentences` 10 s and
+  `search_passages` 15 s per call (most of it the corpus and model load), and its query vectors equal the
+  stored chunk vectors (cosine 1.000000 on 8 passages).
+
+The offline tests use a stand-in model and embedder (`offline-test`): 10 tests, about 10 s.

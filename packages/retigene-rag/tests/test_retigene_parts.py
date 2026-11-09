@@ -113,3 +113,42 @@ def test_openai_compatible_endpoint(chat_endpoint, monkeypatch):
     assert seen[0]["body"]["messages"][0] == {"role": "system", "content": "rules"}
     rep = meter.report()
     assert rep["total"]["input_tokens"] == 120 and rep["total"]["output_tokens"] == 30 and rep["total"]["cost_usd"] == 0
+
+
+def test_fast_reference_entry_check_matches_the_plain_one():
+    import random
+
+    from aiscientist_mcp.retigene_rag import grading
+    from aiscientist_mcp.retigene_rag.corpus import nz
+
+    rng = random.Random(7)
+    words = [
+        "retinal",
+        "dystrophy",
+        "haploinsufficiency",
+        "of",
+        "PAX6",
+        "causes",
+        "aniridia",
+        "in",
+        "families",
+        "mutation",
+        "analysis",
+        "gene",
+    ]
+    titles = [" ".join(rng.choice(words) for _ in range(rng.randint(4, 14))) for _ in range(300)]
+    tl = [t for t in (nz(t) for t in titles) if len(t) > 30]
+    fast = grading.make_is_reference_entry(titles)
+    for _ in range(2000):
+        kind = rng.random()
+        t = rng.choice(titles)
+        if kind < 0.3:  # a part of a title
+            a = rng.randint(0, len(t) // 2)
+            q = t[a : a + rng.randint(10, len(t))]
+        elif kind < 0.6:  # a title inside a longer sentence
+            q = "As reported, " + t + " was confirmed. " + rng.choice(words)
+        else:
+            q = " ".join(rng.choice(words) for _ in range(rng.randint(3, 20)))
+        n = nz(q)
+        plain = (len(n) > 30 and any(n in x or x in n for x in tl)) or bool(grading.AUTHOR_LIST.search(q.strip()))
+        assert fast(q) == plain, q

@@ -1,7 +1,7 @@
 """Gene-level grading of a dosage property from the corpus' own sentences (RCHENLAB/AiScientist #99).
 
 From AiScientist's ``extract_haploinsufficient_genes/grading.py`` (sentence curation by Ziyao Ma, rules
-revision 17), unchanged but for the imports.
+revision 17), unchanged but for the imports and a faster, equivalent reference-entry check.
 
 The unit is the gene, not the passage. ``corpus.scan`` brings every
 sentence of the corpus that says the property, grouped by the gene it names; this module reads one
@@ -588,16 +588,41 @@ def make_is_reference_entry(titles: Iterable[str]) -> Callable[[str, str, str], 
     running text ("... (Lenaers et al., 2002)", "has been shown to cause HPE [12]") is not one: that
     was v3's ``make_is_cite`` and it struck the one SHH sentence and OPA1's best sentence."""
     tl = [t for t in (nz(t) for t in titles) if len(t) > 30]
+    # The same test as any(n in t or t in n for t in tl), without comparing every sentence with every title
+    # (1,739 titles in RetiGene): a sentence inside a title is a substring of the titles joined by a character
+    # nz() never keeps, and a title inside a sentence starts at a position where its first 20 characters do.
+    joined = "\x00".join(tl)
+    by_prefix: dict[str, list[str]] = {}
+    for t in tl:
+        by_prefix.setdefault(t[:_PREFIX], []).append(t)
+
+    def is_title_part(n: str) -> bool:
+        if n in joined:
+            return True
+        return any(t in n for i in range(len(n) - _PREFIX + 1) for t in by_prefix.get(n[i : i + _PREFIX], ()))
 
     def is_ref(q: str, prev: str = "", nxt: str = "") -> bool:
         n = nz(q)
         return (
-            (len(n) > 30 and any(n in t or t in n for t in tl))
+            (len(n) > 30 and is_title_part(n))
             or bool(AUTHOR_LIST.search(q.strip()))
             or bool(JOURNAL_CITE.search(prev) and JOURNAL_CITE.search(nxt))
         )
 
     return is_ref
+
+
+_PREFIX = 20
+_IS_REF: dict[tuple[int, int], Callable[[str, str, str], bool]] = {}
+
+
+def _is_reference_entry(titles: Any) -> Callable[[str, str, str], bool]:
+    """``make_is_reference_entry`` for these titles, built once (every gene of a run has the same titles)."""
+    key = (id(titles), len(titles))
+    if key not in _IS_REF:
+        _IS_REF.clear()
+        _IS_REF[key] = make_is_reference_entry(_title_list(titles))
+    return _IS_REF[key]
 
 
 def check_gene(
@@ -712,7 +737,7 @@ def _check_gene_once(
     max_per_call: int | None = None,
     retries: int = 1,
 ) -> tuple[list[dict[str, Any]], str]:
-    is_ref = make_is_reference_entry(_title_list(titles))
+    is_ref = _is_reference_entry(titles)
     out: list[dict[str, Any]] = []
     errors: list[str] = []
     for rng in _batches(len(hits), max_per_call or MAX_SENTENCES_PER_CALL):

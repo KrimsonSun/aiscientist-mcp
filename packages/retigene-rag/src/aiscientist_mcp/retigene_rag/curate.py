@@ -39,7 +39,6 @@ REQUEST_COLUMNS = ("term", "kind", "source", "n_sentences")
 GENE_COLUMNS = (*grading.GRADE_COLUMNS, "citation", "title", "year", "doi")
 SENTENCE_COLUMNS = (*grading.SENTENCE_COLUMNS, "citation", "title")
 CHARS_PER_TOKEN = 2.3  # measured on whole reads of the RetiGene corpus (Claude Haiku 5.5)
-OUT_PER_SENTENCE = (60, 160)  # output tokens per checked sentence per reading, for the estimate
 
 
 def rules_digest() -> str:
@@ -92,30 +91,37 @@ def find(loaded: Loaded, agent_terms: list[str]) -> tuple[list[C.Term], dict[str
 
 
 def estimate(merged: dict[str, list[C.SentenceHit]], titles: dict, models: dict, workers: int) -> dict:
-    """Calls, tokens, cost and minutes of grading ``merged``, before any call: the check pass exactly
-    (its requests are known), the review between a third of the genes and all of them."""
+    """Calls, tokens, cost and minutes of grading ``merged``, before any call, as a low-high range. The check
+    pass is counted from its requests; the review is assumed for a quarter to a half of the genes (36% on
+    the haploinsufficiency question). The system prompts are read from the provider's cache after the first
+    call (a tenth of the input price), and the output per sentence and reading is the range measured on
+    RetiGene with Claude Haiku 5.5 at low effort (about 320 tokens)."""
     passes = int(models["check_passes"])
-    chars = calls = sentences = 0
+    calls = user = sentences = 0
     for gene, hits in merged.items():
         for b in range(0, len(hits), grading.MAX_SENTENCES_PER_CALL):
             msgs = grading.gene_check_messages(gene, hits[b : b + grading.MAX_SENTENCES_PER_CALL], titles=titles)
-            chars += sum(len(m["content"]) for m in msgs)
+            user += len(msgs[1]["content"])
             calls += 1
         sentences += len(hits)
-    check_in = round(chars * passes / CHARS_PER_TOKEN)
-    review_in = round((chars + sentences * 120) / CHARS_PER_TOKEN)  # the sentences again, with their checks
-    lo_genes, hi_genes = math.ceil(len(merged) / 3), len(merged)
-    out_lo, out_hi = (sentences * passes * o for o in OUT_PER_SENTENCE)
+    genes = len(merged)
+    sys_check, sys_review = (len(x) / CHARS_PER_TOKEN for x in (grading.GENE_CHECK_SYSTEM, grading.GENE_REVIEW_SYSTEM))
     pc, pr = M.price(models["check_model"]), M.price(models["review_model"])
-    usd = [
-        (check_in * pc[0] + out_lo * pc[1] + review_in / 3 * pr[0] + lo_genes * 150 * pr[1]) / 1e6,
-        (check_in * pc[0] + out_hi * pc[1] + review_in * pr[0] + hi_genes * 300 * pr[1]) / 1e6,
-    ]
-    return {"genes": len(merged), "sentences": sentences, "calls": [calls * passes + lo_genes, calls * passes + hi_genes],
-            "input_tokens": [check_in + round(review_in / 3), check_in + review_in],
-            "output_tokens": [out_lo + lo_genes * 150, out_hi + hi_genes * 300],
-            "cost_usd": [round(x, 3) for x in usd],
-            "minutes": [round(m, 1) for m in (len(merged) / workers * passes * 4 / 60, len(merged) / workers * passes * 12 / 60)]}  # fmt: skip
+    out = {"genes": genes, "sentences": sentences}
+    rows = []
+    for share, o_sent, o_rev, secs in ((0.25, 250, 300, 2.0), (0.5, 400, 700, 4.0)):
+        reviewed = math.ceil(genes * share)
+        check = {"in": user * passes / CHARS_PER_TOKEN, "cached": calls * passes * sys_check,
+                 "out": sentences * passes * o_sent}  # fmt: skip
+        review = {"in": share * user * 1.6 / CHARS_PER_TOKEN, "cached": reviewed * sys_review, "out": reviewed * o_rev}
+        usd = sum(
+            (u["in"] * p[0] + u["cached"] * p[0] * 0.1 + u["out"] * p[1]) / 1e6 for u, p in ((check, pc), (review, pr))
+        )
+        n = calls * passes + reviewed
+        rows.append({"calls": n, "input_tokens": round(check["in"] + check["cached"] + review["in"] + review["cached"]),
+                     "output_tokens": round(check["out"] + review["out"]), "cost_usd": round(usd, 3),
+                     "minutes": round((n * secs / max(1, workers) + 40) / 60, 1)})  # fmt: skip
+    return out | {k: [rows[0][k], rows[1][k]] for k in rows[0]}
 
 
 def _write(path: Path, rows: list[dict[str, Any]], columns) -> None:
@@ -151,9 +157,10 @@ def run(d: Path, index, cache_dir: Path | None, loaded: Loaded | None = None) ->
             text = call(messages)
             with lock:
                 done[role] += 1
-                tmp = progress.with_suffix(".tmp")
-                tmp.write_text(json.dumps({"model_calls": done, "estimate_calls": req["estimate"]["calls"]}))
-                tmp.replace(progress)
+                if (done["check"] + done["review"]) % 10 == 0:  # often enough for curation_status
+                    tmp = progress.with_suffix(".tmp")
+                    tmp.write_text(json.dumps({"model_calls": done, "estimate_calls": req["estimate"]["calls"]}))
+                    tmp.replace(progress)
             return text
 
         return wrapped

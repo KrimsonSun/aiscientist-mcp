@@ -36,13 +36,14 @@ sentence grading of #99 (Ziyao Ma, rules revision 17):
    a non-ocular phenotype lowers it.
 
 A curation is kept under an id made of its terms, the rules, the models and the index fingerprint, and
-asking again reuses it. Every model reply is cached (`RETIGENE_CACHE`), so a rerun, a reworded question with
+asking again reuses it. Claude Haiku 5.5 is both the check and the review model (the defaults, and the
+model of the 15-gene test below). Every model reply is cached (`RETIGENE_CACHE`), so a rerun, a reworded question with
 the same sentences, or a corpus update reads only what changed.
 
 | Variable | Meaning | Default |
 | --- | --- | --- |
-| `RETIGENE_INDEX` | the index, read-only: a version of the AiScientist shared dataset `retigene` (`mechanism_cache/sentences.jsonl`, `chunks.jsonl`, `chunk_vecs.npy`, `manifest.csv`, `hgnc_complete_set.txt`) | required |
-| `RETIGENE_PROVIDER` | `anthropic` (Claude) or `openai` (any OpenAI-compatible endpoint, such as the lab's shared model on vLLM) | `anthropic` |
+| `RETIGENE_INDEX` | the index, read-only, laid out as the AiScientist shared dataset `retigene` (`mechanism_cache/sentences.jsonl`, `chunks.jsonl`, `chunk_vecs.npy`, `manifest.csv`, `hgnc_complete_set.txt`) | required |
+| `RETIGENE_PROVIDER` | `anthropic` (Claude) or `openai` (any OpenAI-compatible endpoint) | `anthropic` |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL` | the Claude key (and a proxy) | for `anthropic` |
 | `RETIGENE_BASE_URL`, `RETIGENE_API_KEY` | the endpoint (`http://host:port/v1`) and its key; `RETIGENE_OPENAI_BODY` is JSON merged into each request (the temperature is the endpoint's default, as for Claude) | for `openai` |
 | `RETIGENE_CHECK_MODEL`, `RETIGENE_REVIEW_MODEL` | the two readers | `claude-haiku-5-5`, `claude-haiku-5-5` |
@@ -82,7 +83,6 @@ load and the curation. Input tokens include the cached system prompts (about thr
 | the same | Claude Sonnet | Haiku | 1 | 517, 328 | 195 s | 769 | 2.38 M / 0.49 M | $0.39 | 15/15 (10/10, 5/5) | 7/7 | none |
 | the first question, no agent | none | Haiku | 1 | 474, 301 | 156 s | 712 | 2.24 M / 0.47 M | $0.31 | 15/15 (10/10, 5/5) | 7/7 | none |
 | the same | none | Claude Sonnet 5.5 | 1 | 474, 301 | 157 s | 711 | 2.24 M / 0.45 M | $0.78 | 15/15 (10/10, 5/5) | 7/7 | none |
-| the first question, no agent, an open model | none | Qwen3.8-27B INT4, also the check model | 1 | 474, 301 | 697 s | 711 | 1.49 M / 0.27 M | none (lab GPU) | 13/15 (8/10, 5/5) | 7/7 | none |
 | v3 (the RetiGene scan of 2026-10-20), for comparison | | | | 1,537 passages | 10 min | 1,537 | | $1.08 | 18 of the 24-gene reference | | |
 
 - **What the agents did.** Every agent searched "haploinsufficien" with variants of its own ("one functional
@@ -92,14 +92,9 @@ load and the curation. Input tokens include the cached system prompts (about thr
 - **B genes.** All 7 were kept apart in every run, graded B, except RP1 graded N once.
 - **A genes outside the reference.** ABCA4 and FSCN2 in every run; CLN8 and FH (the CFH protein, factor H,
   read as a gene) in some. They are not in the curator's 24 and have not been checked by a curator.
-- **The open model.** Qwen3.8-27B INT4 on vLLM 0.28.0, two A30 cards of HPC3 (tensor-parallel 2, thinking
-  off, the endpoint's default temperature), through `RETIGENE_PROVIDER=openai`; vLLM took 6 min to start.
-  PAX6 and OPA1 went to B: the review graded each A, but no sentence met the A conditions on both readings.
-  One PAX6 reading put an evidence type in `dosage_claim`, which is read as "no"; the OPA1 sentence of the
-  reference names no eye disease and was read as non-ocular. The lab's shared model has not been tested.
 - **Reuse.** The same curation asked again answers at once from the kept result. With `rerun=true` and the
   reply cache it takes 17 s and no model call, with an identical gene table.
-- **Estimate.** `estimate_only` gave $0.25-0.40, 678-753 calls and 2.1-3.8 min for the first question (for Claude; the open model above took 12).
+- **Estimate.** `estimate_only` gave $0.25-0.40, 678-753 calls and 2.1-3.8 min for the first question.
 - **The image.** Built from `containers/retigene-rag/Dockerfile` (2.68 GB) and run one container per call
   with the index mounted read-only, as AiScientist runs a pinned server: `search_sentences` 10 s and
   `search_passages` 15 s per call (most of it the corpus and model load), and its query vectors equal the

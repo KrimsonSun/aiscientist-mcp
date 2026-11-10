@@ -17,10 +17,10 @@ versioned on its own ([Semantic Versioning](https://semver.org/)) and released w
   curator's definitions, and the code checks every quote and bounds the grade. `get_genes` and
   `get_evidence` give the gene and sentence tables (verbatim quote, PMID, page, sentence id),
   `write_report` a Markdown report, `evaluate` the score against the bundled curator reference of
-  2026-11-04 (`reference_genes_reviewed.csv`, grades only). Claude or any OpenAI-compatible endpoint (the
-  lab's shared model) reads, set by environment variables; replies are cached, and a curation with the same
-  terms, rules, models and corpus is reused. The index is mounted read-only (the AiScientist shared dataset
-  `retigene`); the image holds the query embedding model.
+  2026-11-04 (`reference_genes_reviewed.csv`, grades only). Claude Haiku (by default) or any OpenAI-compatible
+  endpoint reads, set by environment variables; replies are cached, and a curation with the same
+  terms, rules, models and corpus is reused. The index is mounted read-only (laid out as the AiScientist shared
+  dataset `retigene`); the image holds the query embedding model.
 
 - Community and maintenance files following the AiScientist skills registry: code of conduct,
   security policy, citation, editor and pre-commit configuration, CODEOWNERS, Dependabot, issue

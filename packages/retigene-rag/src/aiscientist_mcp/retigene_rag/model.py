@@ -129,8 +129,11 @@ def complete(provider: str, model: str, *, effort: str = "low", max_tokens: int 
     def call(messages: list[dict[str, str]]) -> str:
         key = None
         if cache is not None:
-            key = cache.key({"provider": provider, "model": model, "effort": effort, "max_tokens": max_tokens,
-                             "messages": messages})  # fmt: skip
+            request = {"provider": provider, "model": model, "effort": effort, "max_tokens": max_tokens,
+                       "messages": messages}  # fmt: skip
+            if provider == "openai" and os.environ.get("RETIGENE_OPENAI_BODY"):
+                request["body"] = os.environ["RETIGENE_OPENAI_BODY"]  # it changes the reply
+            key = cache.key(request)
             hit = cache.get(key)
             if hit is not None:
                 meter.add(model, {}, cached=True)
@@ -191,7 +194,9 @@ def _anthropic(model: str, effort: str, max_tokens: int, attempts: int):
 
 def _openai(model: str, effort: str, max_tokens: int, attempts: int):
     """An OpenAI-compatible chat endpoint. ``RETIGENE_OPENAI_BODY`` (JSON) is merged into every request,
-    e.g. ``{"chat_template_kwargs": {"enable_thinking": false}}`` for a reasoning model served by vLLM."""
+    e.g. ``{"chat_template_kwargs": {"enable_thinking": false}}`` for a reasoning model served by vLLM.
+    The temperature is the endpoint's default, as for Claude: the check's two readings and its retry of
+    an unreadable reply are meant to differ, which they barely do at temperature 0."""
     import urllib.error
     import urllib.request
 
@@ -209,7 +214,7 @@ def _openai(model: str, effort: str, max_tokens: int, attempts: int):
         return isinstance(exc, urllib.error.URLError | TimeoutError | ConnectionError)
 
     def raw(messages: list[dict[str, str]]) -> tuple[str, dict]:
-        body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0, **extra}
+        body = {"model": model, "messages": messages, "max_tokens": max_tokens, **extra}
 
         def once():
             req = urllib.request.Request(f"{base}/chat/completions", data=json.dumps(body).encode(), headers=headers)

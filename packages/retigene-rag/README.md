@@ -44,7 +44,7 @@ the same sentences, or a corpus update reads only what changed.
 | `RETIGENE_INDEX` | the index, read-only: a version of the AiScientist shared dataset `retigene` (`mechanism_cache/sentences.jsonl`, `chunks.jsonl`, `chunk_vecs.npy`, `manifest.csv`, `hgnc_complete_set.txt`) | required |
 | `RETIGENE_PROVIDER` | `anthropic` (Claude) or `openai` (any OpenAI-compatible endpoint, such as the lab's shared model on vLLM) | `anthropic` |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL` | the Claude key (and a proxy) | for `anthropic` |
-| `RETIGENE_BASE_URL`, `RETIGENE_API_KEY` | the endpoint (`http://host:port/v1`) and its key; `RETIGENE_OPENAI_BODY` is JSON merged into each request | for `openai` |
+| `RETIGENE_BASE_URL`, `RETIGENE_API_KEY` | the endpoint (`http://host:port/v1`) and its key; `RETIGENE_OPENAI_BODY` is JSON merged into each request (the temperature is the endpoint's default, as for Claude) | for `openai` |
 | `RETIGENE_CHECK_MODEL`, `RETIGENE_REVIEW_MODEL` | the two readers | `claude-haiku-5-5`, `claude-haiku-5-5` |
 | `RETIGENE_EFFORT`, `RETIGENE_CHECK_PASSES`, `RETIGENE_WORKERS` | Claude reasoning effort; readings per gene; genes graded at a time | `low`, `2`, `16` |
 | `RETIGENE_PRICE_IN`, `RETIGENE_PRICE_OUT` | USD per million tokens for a model outside the Claude price table | `0` |
@@ -99,4 +99,4 @@ load and the curation. Input tokens include the cached system prompts (about thr
   `search_passages` 15 s per call (most of it the corpus and model load), and its query vectors equal the
   stored chunk vectors (cosine 1.000000 on 8 passages).
 
-The offline tests use a stand-in model and embedder (`offline-test`): 11 tests, about 10 s.
+The offline tests use a stand-in model and embedder (`offline-test`): 13 tests, about 10 s.

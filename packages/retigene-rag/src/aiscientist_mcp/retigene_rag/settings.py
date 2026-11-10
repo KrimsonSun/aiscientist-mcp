@@ -121,5 +121,9 @@ class Settings:
 
     def models(self) -> dict:
         """What a curation records about its models (and keys a kept curation by)."""
-        return {"provider": self.provider, "check_model": self.check_model, "review_model": self.review_model,
-                "effort": self.effort, "check_passes": self.check_passes}  # fmt: skip
+        out = {"provider": self.provider, "check_model": self.check_model, "review_model": self.review_model,
+               "effort": self.effort, "check_passes": self.check_passes}  # fmt: skip
+        body = os.environ.get("RETIGENE_OPENAI_BODY")
+        if self.provider == "openai" and body:
+            out["openai_body"] = body
+        return out

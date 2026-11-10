@@ -111,8 +111,40 @@ def test_openai_compatible_endpoint(chat_endpoint, monkeypatch):
     assert seen[0]["path"] == "/v1/chat/completions" and seen[0]["auth"] == "Bearer test-token"
     assert seen[0]["body"]["chat_template_kwargs"] == {"enable_thinking": False}
     assert seen[0]["body"]["messages"][0] == {"role": "system", "content": "rules"}
+    assert "temperature" not in seen[0]["body"]  # the endpoint's default, as for Claude: two readings differ
     rep = meter.report()
     assert rep["total"]["input_tokens"] == 120 and rep["total"]["output_tokens"] == 30 and rep["total"]["cost_usd"] == 0
+
+
+def test_request_body_keys_the_cache(chat_endpoint, monkeypatch, tmp_path):
+    """Another RETIGENE_OPENAI_BODY (thinking on, a temperature) is another request: never an old reply."""
+    from aiscientist_mcp.retigene_rag import model as M
+
+    url, seen = chat_endpoint
+    monkeypatch.setenv("RETIGENE_BASE_URL", url)
+    msgs = [{"role": "system", "content": "rules"}, {"role": "user", "content": "GENE: PAX6"}]
+    for body in ('{"chat_template_kwargs": {"enable_thinking": false}}', '{"temperature": 0}'):
+        monkeypatch.setenv("RETIGENE_OPENAI_BODY", body)
+        M.complete("openai", "m", cache=M.ReplyCache(tmp_path))(msgs)
+    assert len(seen) == 2
+
+
+def test_replies_read_leniently():
+    """What an open model sent in a real run: a quote holding the PDF's raw control character, and the
+    items as a bare list. Both are read; the strict reading lost three A genes (PAX6, PRPH2) and SOX5."""
+    from aiscientist_mcp.retigene_rag import grading
+    from aiscientist_mcp.retigene_rag.corpus import json_object
+
+    item = (
+        '{"sentence": 1, "dosage_claim": "yes", "hedge": "none", "hedge_target": "none", '
+        '"subject_is_gene_dosage": true, "mechanism_stated": "haploinsufficiency", "phenotype": "aniridia", '
+        '"phenotype_kind": "other_ocular", "evidence_type": "primary_finding", "quote": "0.1 (\x0313.0 D) PAX6"}'
+    )
+    for reply in (f'```json\n{{"items": [{item}]}}\n```', f"[{item}]"):
+        assert json_object(reply)["items"][0]["quote"] == "0.1 (\x0313.0 D) PAX6"
+        (c,) = grading.parse_gene_check(reply, 1)
+        assert c["dosage_claim"] == "yes" and c["phenotype_kind"] == "other_ocular"
+    assert json_object('{"grade": "B"}') == {"grade": "B"} and json_object("not json") is None
 
 
 def test_fast_reference_entry_check_matches_the_plain_one():

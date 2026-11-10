@@ -44,18 +44,23 @@ def word_in(word: str, text: str) -> bool:
     return bool(word) and re.search(r"(?<![A-Za-z0-9])" + re.escape(word) + r"(?![A-Za-z0-9])", text, re.I) is not None
 
 
+_LENIENT = json.JSONDecoder(strict=False)  # a quote copied with the PDF's raw control characters still reads
+
+
 def json_object(text: str) -> dict | None:
     """The JSON object in a model reply: the reply itself (``json`` fences allowed), else the outermost
-    braces in it."""
+    braces in it. A bare list of objects is read as ``{"items": [...]}``, the shape the check asks for."""
     text = re.sub(r"^```(json)?|```$", "", (text or "").strip(), flags=re.M).strip()
     text = re.sub(r"^<think>.*?</think>\s*", "", text, flags=re.S)  # a reasoning model's thinking, if returned
     for cand in (text, text[text.find("{") : text.rfind("}") + 1] if "{" in text else ""):
         if not cand:
             continue
         try:
-            data = json.loads(cand)
+            data = _LENIENT.decode(cand)
         except ValueError:
             continue
+        if isinstance(data, list) and data and all(isinstance(x, dict) for x in data):
+            return {"items": data}
         if isinstance(data, dict):
             return data
     return None

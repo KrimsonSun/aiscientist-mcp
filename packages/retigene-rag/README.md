@@ -36,9 +36,12 @@ sentence grading of #99 (Ziyao Ma, rules revision 17):
    a non-ocular phenotype lowers it.
 
 A curation is kept under an id made of its terms, the rules, the models and the index fingerprint, and
-asking again reuses it. Claude Haiku 5.5 is both the check and the review model (the defaults, and the
-model of the 15-gene test below). Every model reply is cached (`RETIGENE_CACHE`), so a rerun, a reworded question with
+asking again reuses it. Every model reply is cached (`RETIGENE_CACHE`), so a rerun, a reworded question with
 the same sentences, or a corpus update reads only what changed.
+
+**The model comes from the caller**: `RETIGENE_PROVIDER`, `RETIGENE_CHECK_MODEL` / `RETIGENE_REVIEW_MODEL` and the
+key or endpoint settings below. The curation records which model read it. It is validated on Claude Haiku
+5.5 (the defaults, both readers; the 15-gene test below); for another model, run the test again.
 
 | Variable | Meaning | Default |
 | --- | --- | --- |

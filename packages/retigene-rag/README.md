@@ -43,12 +43,20 @@ the same sentences, or a corpus update reads only what changed.
 key or endpoint settings below. The curation records which model read it. It is validated on Claude Haiku
 5.5 (the defaults, both readers; the 15-gene test below); for another model, run the test again.
 
+With `RETIGENE_PROVIDER=relay` the server holds no key and no model address: each prompt is written to
+`RETIGENE_RELAY_DIR/req/<id>.json` (`{"id", "messages", "max_tokens"}`) and the caller's platform answers in
+`resp/<id>.json` with `{"text", "usage", "cost_usd"}` or `{"error", "kind"}` (the protocol of AiScientist's
+`gateway/llm_relay.py`). `kind` `stop` ends the curation, keeping the replies read so far; `transport` is
+tried again; `model` fails that one prompt, so its gene is read again and otherwise listed `unresolved`. The
+cost is the platform's own figure.
+
 | Variable | Meaning | Default |
 | --- | --- | --- |
 | `RETIGENE_INDEX` | the index, read-only, laid out as the AiScientist shared dataset `retigene` (`mechanism_cache/sentences.jsonl`, `chunks.jsonl`, `chunk_vecs.npy`, `manifest.csv`, `hgnc_complete_set.txt`) | required |
-| `RETIGENE_PROVIDER` | `anthropic` (Claude) or `openai` (any OpenAI-compatible endpoint) | `anthropic` |
+| `RETIGENE_PROVIDER` | `anthropic` (Claude), `openai` (any OpenAI-compatible endpoint) or `relay` (the caller's platform answers each prompt, see below) | `anthropic` |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL` | the Claude key (and a proxy) | for `anthropic` |
 | `RETIGENE_BASE_URL`, `RETIGENE_API_KEY` | the endpoint (`http://host:port/v1`) and its key; `RETIGENE_OPENAI_BODY` is JSON merged into each request (the temperature is the endpoint's default, as for Claude) | for `openai` |
+| `RETIGENE_RELAY_DIR`, `RETIGENE_RELAY_TIMEOUT` | for `relay`: the folder the platform answers in (`req/`, `resp/`), and how long to wait for one reply | `900` s |
 | `RETIGENE_CHECK_MODEL`, `RETIGENE_REVIEW_MODEL` | the two readers | `claude-haiku-5-5`, `claude-haiku-5-5` |
 | `RETIGENE_EFFORT`, `RETIGENE_CHECK_PASSES`, `RETIGENE_WORKERS` | Claude reasoning effort; readings per gene; genes graded at a time | `low`, `2`, `16` |
 | `RETIGENE_PRICE_IN`, `RETIGENE_PRICE_OUT` | USD per million tokens for a model outside the Claude price table | `0` |
@@ -103,4 +111,4 @@ load and the curation. Input tokens include the cached system prompts (about thr
   `search_passages` 15 s per call (most of it the corpus and model load), and its query vectors equal the
   stored chunk vectors (cosine 1.000000 on 8 passages).
 
-The offline tests use a stand-in model and embedder (`offline-test`): 13 tests, about 10 s.
+The offline tests use a stand-in model and embedder (`offline-test`): 18 tests, about 10 s.

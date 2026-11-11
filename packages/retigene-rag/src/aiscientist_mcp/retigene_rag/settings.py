@@ -92,7 +92,7 @@ class Settings:
     index: Index
     data_dir: Path  # this server's curations: $AISCI_DATA_DIR/retigene-rag
     cache_dir: Path  # model replies, reused across curations (RETIGENE_CACHE)
-    provider: str  # anthropic | openai
+    provider: str  # anthropic | openai | relay
     check_model: str  # reads every gene's sentences ("offline-test": the tests' stand-in)
     review_model: str  # grades the genes with a claim
     effort: str  # reasoning effort of both (anthropic); "" sends none

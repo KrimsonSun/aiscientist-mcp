@@ -9,6 +9,9 @@ Providers (``RETIGENE_PROVIDER``):
   anthropic  Claude through the Anthropic SDK; key ``ANTHROPIC_API_KEY`` (``ANTHROPIC_BASE_URL`` for a proxy).
   openai     an OpenAI-compatible ``/chat/completions`` endpoint, such as the lab's shared model on vLLM;
              ``RETIGENE_BASE_URL`` and ``RETIGENE_API_KEY`` (``OPENAI_BASE_URL``, ``OPENAI_API_KEY``).
+  relay      whatever model the caller's own platform answers with (AiScientist's ``gateway/llm_relay.py``):
+             each prompt is a file in ``RETIGENE_RELAY_DIR/req/``, the reply comes back in ``resp/``; no key
+             and no model address is in this process.
 The model name ``offline-test`` is a deterministic stand-in for the tests: no key, no network, never a
 substitute for a real reading.
 """
@@ -22,6 +25,7 @@ import re
 import sys
 import threading
 import time
+import uuid
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -51,10 +55,18 @@ def cost(use: dict, model: str) -> float:
             + use.get("cache_write_tokens", 0) * pin * 1.25 + use.get("cache_read_tokens", 0) * pin * 0.1) / 1e6  # fmt: skip
 
 
+def _cost_of(u: dict, model: str) -> float:
+    """A model's USD in a ``Meter``: the reported figures, plus the price table for the calls not reported."""
+    rest = {k: u[k] - u.get("reported_" + k, 0) for k in Meter.KEYS[2:]}
+    return u.get("reported_usd", 0.0) + cost(rest, model)
+
+
 class Meter:
     """Calls, tokens and seconds per model, safe across threads."""
 
     KEYS = ("calls", "cached", "input_tokens", "output_tokens", "cache_write_tokens", "cache_read_tokens")
+    # A call whose usage carries ``cost_usd`` (the relay: the caller's platform priced it) is counted at
+    # that figure and left out of this module's own price table.
 
     def __init__(self):
         self.by_model: dict[str, dict] = {}
@@ -64,13 +76,19 @@ class Meter:
         with self._lock:
             m = self.by_model.setdefault(model, {k: 0 for k in self.KEYS} | {"model_seconds": 0.0})
             m["cached" if cached else "calls"] += 1
+            if use.get("cost_usd") is not None:
+                m["reported_usd"] = m.get("reported_usd", 0.0) + float(use["cost_usd"])
+                m["reported_calls"] = m.get("reported_calls", 0) + 1
+                for k in self.KEYS[2:]:
+                    m["reported_" + k] = m.get("reported_" + k, 0) + int(use.get(k) or 0)
             for k in self.KEYS[2:]:
                 m[k] += int(use.get(k) or 0)
             m["model_seconds"] += seconds
 
     def report(self) -> dict:
         with self._lock:
-            out = {m: {**u, "model_seconds": round(u["model_seconds"], 1), "cost_usd": round(cost(u, m), 4)}
+            out = {m: {**{k: v for k, v in u.items() if not k.startswith("reported")},
+                       "model_seconds": round(u["model_seconds"], 1), "cost_usd": round(_cost_of(u, m), 4)}
                    for m, u in self.by_model.items()}  # fmt: skip
         total = {k: sum(u[k] for u in out.values()) for k in self.KEYS}
         total["cost_usd"] = round(sum(u["cost_usd"] for u in out.values()), 4)
@@ -123,8 +141,10 @@ def complete(provider: str, model: str, *, effort: str = "low", max_tokens: int 
         raw = _anthropic(model, effort, max_tokens, attempts)
     elif provider == "openai":
         raw = _openai(model, effort, max_tokens, attempts)
+    elif provider == "relay":
+        raw = _relay(max_tokens, attempts)
     else:
-        raise ValueError(f"RETIGENE_PROVIDER={provider!r}: expected anthropic or openai")
+        raise ValueError(f"RETIGENE_PROVIDER={provider!r}: expected anthropic, openai or relay")
 
     def call(messages: list[dict[str, str]]) -> str:
         key = None
@@ -227,6 +247,71 @@ def _openai(model: str, effort: str, max_tokens: int, attempts: int):
         u = data.get("usage") or {}
         return text, {"input_tokens": int(u.get("prompt_tokens") or 0),
                       "output_tokens": int(u.get("completion_tokens") or 0)}  # fmt: skip
+
+    return raw
+
+
+class RelayStopped(RuntimeError):
+    """The caller's platform stopped answering this curation: its spending cap or the user's budget is
+    reached, the run was stopped, or the key was refused. No later prompt would fare better."""
+
+
+def _relay(max_tokens: int, attempts: int):
+    """The model of whoever runs the server, answered by their platform (AiScientist's
+    ``gateway/llm_relay.py``). Each prompt is ``RETIGENE_RELAY_DIR/req/<id>.json`` (``{"id", "messages",
+    "max_tokens"}``), written under a temporary name and renamed; the reply is ``resp/<id>.json``:
+    ``{"text", "usage", "cost_usd"}`` or ``{"error", "kind"}``. ``kind`` ``stop`` ends the curation
+    (``RelayStopped``); ``transport`` (the model stayed unreachable through the platform's own retries) is
+    tried again; ``model`` fails that one prompt, which then reads as an unreadable reply (the gene is
+    retried and, failing again, listed ``unresolved``). No reply within ``RETIGENE_RELAY_TIMEOUT`` seconds
+    (900): the platform went away, and the prompt is withdrawn."""
+    root = Path(os.environ.get("RETIGENE_RELAY_DIR") or "")
+    if not str(os.environ.get("RETIGENE_RELAY_DIR") or "").strip():
+        raise ValueError("RETIGENE_PROVIDER=relay needs RETIGENE_RELAY_DIR (the folder the platform answers in)")
+    req, resp = root / "req", root / "resp"
+    req.mkdir(parents=True, exist_ok=True)
+    resp.mkdir(parents=True, exist_ok=True)
+    timeout = float(os.environ.get("RETIGENE_RELAY_TIMEOUT") or 900)
+    poll = float(os.environ.get("RETIGENE_RELAY_POLL") or 0.5)
+
+    def once(messages: list[dict[str, str]]) -> dict:
+        rid = uuid.uuid4().hex
+        tmp = req / f".{rid}.tmp"
+        tmp.write_text(json.dumps({"id": rid, "messages": messages, "max_tokens": max_tokens}), encoding="utf-8")
+        os.replace(tmp, req / f"{rid}.json")
+        answer, deadline = resp / f"{rid}.json", time.time() + timeout
+        while time.time() < deadline:
+            if answer.is_file():
+                try:
+                    data = json.loads(answer.read_text(encoding="utf-8"))
+                except (OSError, ValueError):  # seen before the rename landed: read again
+                    time.sleep(poll)
+                    continue
+                answer.unlink(missing_ok=True)
+                return data if isinstance(data, dict) else {"error": "the reply was not an object", "kind": "model"}
+            time.sleep(poll)
+        (req / f"{rid}.json").unlink(missing_ok=True)  # a platform that comes back late pays for nothing
+        raise RelayStopped(f"no answer from the platform within {timeout:.0f} s")
+
+    def raw(messages: list[dict[str, str]]) -> tuple[str, dict]:
+        def call() -> dict:
+            data = once(messages)
+            err, kind = str(data.get("error") or ""), str(data.get("kind") or "")
+            if err and kind == "stop":
+                raise RelayStopped(err)
+            if err and kind == "transport":
+                raise ConnectionError(err)
+            return data
+
+        data = _retry(attempts, lambda exc: isinstance(exc, ConnectionError), call)
+        if data.get("error"):
+            print(f"[model] the platform could not answer one prompt: {data['error']}", file=sys.stderr, flush=True)
+            return "", {}
+        u = data.get("usage") or {}
+        use = {"input_tokens": int(u.get("prompt_tokens") or 0), "output_tokens": int(u.get("completion_tokens") or 0)}
+        if data.get("cost_usd") is not None:
+            use["cost_usd"] = float(data["cost_usd"])
+        return str(data.get("text") or ""), use
 
     return raw
 

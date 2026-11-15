@@ -198,6 +198,21 @@ def test_stdio_lists_tools_and_returns_errors(settings):
     assert bad.returncode != 0 and "invalid analysis_id" in bad.stderr
 
 
+@pytest.mark.parametrize("spelling", ["adata_annotated.h5ad", "work/adata_annotated.h5ad"])
+def test_a_handed_off_checkpoint_is_found_by_its_bare_name(settings, monkeypatch, spelling):
+    """`input` documents a bare name as work/<name>. A checkpoint another analysis of the run wrote
+    is not in this analysis's work/ yet: it must be found in the handoff under either spelling."""
+    handoff = settings / "handoff"
+    handoff.mkdir()
+    source = handoff / "adata_annotated.h5ad"
+    source.write_text("annotation output of another analysis")
+    monkeypatch.setenv("SCRNA_CHECKPOINT_ROOT", str(handoff))
+    ws = runtime.workspace("handoff-bare-name")
+    assert runtime._input_identity(ws, "run_de", {"input": spelling}, "") == [runtime._identity(source)]
+    with pytest.raises(ValueError, match=r"matches no \.h5ad file"):
+        runtime._input_identity(ws, "run_de", {"input": "adata_missing.h5ad"}, "")
+
+
 def test_upstream_qc_change_cannot_reuse_old_clustering(settings, monkeypatch):
     handoff = settings / "handoff"
     handoff.mkdir()

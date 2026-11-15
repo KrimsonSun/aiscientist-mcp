@@ -72,7 +72,7 @@ uv run aiscientist-mcp --server scrna-analysis-mcp call run_scanpy_qc \
 ```
 
 Build the image from the repository root with
-`docker build --platform linux/amd64 -f containers/scrna-analysis/Dockerfile -t mcp-scrna-analysis:0.0.5 .`.
+`docker build --platform linux/amd64 -f containers/scrna-analysis/Dockerfile -t mcp-scrna-analysis:0.0.6 .`.
 The image separates MCP Python 3.13 from scientific Python 3.11.15. Its scientific lock
 contains 63 original `analysis.sif` / `analysis-pydeps` packages, checked against the deployed
 distribution RECORDs, plus 12 packages for optional Harmony/scikit-image and worker JSON

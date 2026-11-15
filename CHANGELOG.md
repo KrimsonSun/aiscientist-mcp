@@ -6,6 +6,12 @@ versioned on its own ([Semantic Versioning](https://semver.org/)) and released w
 
 ## [Unreleased]
 
+### Fixed
+
+- scrna-analysis 0.0.6: an `input` given as a bare file name finds a checkpoint that another
+  analysis of the run handed off, as `work/<name>` already did. `run_de` with
+  `input: adata_annotated.h5ad` used to answer "matches no .h5ad file in this run".
+
 ### Added
 
 - Community and maintenance files following the AiScientist skills registry: code of conduct,

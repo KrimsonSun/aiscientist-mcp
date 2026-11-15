@@ -176,10 +176,10 @@
       "server": "scrna-analysis",
       "category": "single-cell",
       "package": "aiscientist-mcp-scrna-analysis",
-      "version": "0.0.5",
+      "version": "0.0.6",
       "description": "Single-cell RNA analysis with reproducible QC, clustering, differential expression and annotation",
       "entry_point": "scrna-analysis-mcp",
-      "image": "ghcr.io/lijinbio/mcp-scrna-analysis:0.0.5",
+      "image": "ghcr.io/lijinbio/mcp-scrna-analysis:0.0.6",
       "path": "packages/scrna-analysis",
       "tools": [
         {

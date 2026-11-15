@@ -209,8 +209,14 @@ def _input_identity(ws, name, args, dataset):
         suffixes = (".rnk",) if name == "run_gsea_prerank" else (".h5ad",)
         paths, why = _run_files(ctx, explicit, suffixes, pattern_ok=name == "run_gsea_prerank")
         if why:
+            # The same reading as _run_files: a bare name or a relative path means work/<it>.
             requested = Path(explicit)
-            target = requested if requested.is_absolute() else ws / requested
+            if requested.is_absolute():
+                target = requested
+            elif requested.parts and requested.parts[0] in ("work", "artifacts"):
+                target = ws / requested
+            else:
+                target = ws / "work" / requested
             available = [p for p in handoffs if target == ws / "work" / p.name]
             if len(available) != 1:
                 raise ValueError(why)

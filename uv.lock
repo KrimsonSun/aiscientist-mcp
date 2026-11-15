@@ -303,7 +303,7 @@ provides-extras = ["test"]
 
 [[package]]
 name = "aiscientist-mcp-scrna-analysis"
-version = "0.0.5"
+version = "0.0.6"
 source = { editable = "packages/scrna-analysis" }
 dependencies = [
     { name = "aiscientist-mcp-common" },

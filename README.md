@@ -61,7 +61,7 @@ The catalog is generated from each server's `pyproject.toml` and tool list by
 | [`atlas-expression-exploration`](packages/atlas-expression-exploration) | 0.0.4 | `resolve_genes`, `submit_query`, `query_status`, `get_summary`, `plot_dotplot`, `plot_violin`, `plot_featureplot`, `write_report`, `list_queries` | `ghcr.io/lijinbio/mcp-atlas-expression-exploration:0.0.4` |
 | [`cellqc`](packages/cellqc) | 0.0.5 | `run_cellqc`, `cellqc_job_status` | `ghcr.io/lijinbio/mcp-cellqc:0.0.5` |
 | [`scgpt-annotation`](packages/scgpt-annotation) | 0.0.3 | `scgpt_annotate`, `scgpt_job_status` | `ghcr.io/lijinbio/mcp-scgpt-annotation:0.0.3` |
-| [`scrna-analysis`](packages/scrna-analysis) | 0.0.5 | `run_scanpy_qc`, `run_clustering`, `run_de`, `run_enrichment`, `run_depth_matched_de`, `run_gsea_prerank`, `run_doublet_detection`, `run_integration`, `run_pseudobulk_de`, `run_composition`, `run_marker_annotation`, `scrna_job_status` | `ghcr.io/lijinbio/mcp-scrna-analysis:0.0.5` |
+| [`scrna-analysis`](packages/scrna-analysis) | 0.0.6 | `run_scanpy_qc`, `run_clustering`, `run_de`, `run_enrichment`, `run_depth_matched_de`, `run_gsea_prerank`, `run_doublet_detection`, `run_integration`, `run_pseudobulk_de`, `run_composition`, `run_marker_annotation`, `scrna_job_status` | `ghcr.io/lijinbio/mcp-scrna-analysis:0.0.6` |
 
 ### utilities
 

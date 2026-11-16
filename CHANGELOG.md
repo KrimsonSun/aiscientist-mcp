@@ -8,6 +8,12 @@ versioned on its own ([Semantic Versioning](https://semver.org/)) and released w
 
 ### Fixed
 
+- variant-annotation 0.0.3: a VCF whose header has no `##contig` lines is annotated. With a
+  reference FASTA configured, `bcftools norm` used to stop with "Invalid BCF, CONTIG id=0 not
+  present in the header"; the contigs now come from the reference's `.fai` first.
+- variant-annotation 0.0.3: SpliceAI starts when its environment is mounted at a path other than
+  the one it was created at. Its launcher is run with the interpreter next to it, where it used to
+  fail with "No such file or directory" and the scores were left out.
 - scrna-analysis 0.0.6: an `input` given as a bare file name finds a checkpoint that another
   analysis of the run handed off, as `work/<name>` already did. `run_de` with
   `input: adata_annotated.h5ad` used to answer "matches no .h5ad file in this run".

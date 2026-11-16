@@ -328,6 +328,59 @@ def test_spliceai_is_enabled_gating(monkeypatch):
     assert vo.spliceai_is_enabled({"VARIANT_SPLICEAI": "1"}, enabled=False) is False
 
 
+def test_run_offline_adds_reference_contigs_to_a_header_without_them(tmp_path):
+    """A minimal VCF has no ##contig lines; bcftools norm then cannot write its records."""
+    ds = tmp_path / "s.vcf"
+    ds.write_text("##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n1\t100\t.\tA\tG\t.\t.\t.\n")
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    ref = tmp_path / "ref.fa"
+    ref.write_text(">1\nACGT\n")
+    Path(str(ref) + ".fai").write_text("1\t4\t3\t4\t5\n")
+    seen: list[list[str]] = []
+
+    def run(argv):
+        seen.append(argv)
+        if argv[0] == "bcftools":
+            out = Path(argv[argv.index("-o") + 1])
+            # the fake filter copies its input, so the header still has no contig line
+            out.write_text(ds.read_text() if "view" in argv else "")
+        elif argv[0] == "vep":
+            Path(argv[argv.index("--output_file") + 1]).write_text(json.dumps(_LINE_PREDICTORS) + "\n")
+        return types.SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    out = vo.run_offline_annotation(ds, tmp_path / "run", cache_dir=str(cache), ref_fasta=str(ref), run=run)
+    assert out["status"] == "ok" and out["normalized"] is True
+    steps = [a[1] for a in seen if a[0] == "bcftools"]
+    assert steps == ["view", "reheader", "norm"]
+    reheader = next(a for a in seen if a[:2] == ["bcftools", "reheader"])
+    assert reheader[reheader.index("--fai") + 1] == str(ref) + ".fai"
+    norm = next(a for a in seen if a[:2] == ["bcftools", "norm"])
+    assert norm[-1] == reheader[reheader.index("-o") + 1]  # norm reads the reheadered file
+
+
+def test_declares_contigs_reads_plain_and_gzipped_headers(tmp_path):
+    import gzip
+
+    with_contig = tmp_path / "a.vcf.gz"
+    with gzip.open(with_contig, "wt") as fh:
+        fh.write("##fileformat=VCFv4.2\n##contig=<ID=1>\n#CHROM\n")
+    without = tmp_path / "b.vcf"
+    without.write_text("##fileformat=VCFv4.2\n#CHROM\n")
+    assert vo.declares_contigs(with_contig) is True
+    assert vo.declares_contigs(without) is False
+    assert vo.declares_contigs(tmp_path / "missing.vcf") is True  # left to bcftools to report
+
+
+def test_build_spliceai_cmd_runs_the_launcher_with_the_env_interpreter(tmp_path):
+    """The launcher's first line holds the path the env was created at, which a job may not see."""
+    (tmp_path / "python").write_text("")
+    launcher = tmp_path / "openspliceai"
+    launcher.write_text("#!/old/place/envs/openspliceai/bin/python3.10\n")
+    cmd = vo.build_spliceai_cmd("in.vcf", "out.vcf", bin_path=str(launcher), ref_fasta="/r", models_dir="/m")
+    assert cmd[cmd.index("variant") - 2 : cmd.index("variant")] == [str(tmp_path / "python"), str(launcher)]
+
+
 def test_build_spliceai_cmd_shape():
     cmd = vo.build_spliceai_cmd(
         "in.vcf",

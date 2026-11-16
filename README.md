@@ -73,7 +73,7 @@ The catalog is generated from each server's `pyproject.toml` and tool list by
 
 | Server | Version | Tools | Image |
 | --- | --- | --- | --- |
-| [`variant-annotation`](packages/variant-annotation) | 0.0.2 | `annotate_variants`, `variant_job_status` | `ghcr.io/lijinbio/mcp-variant-annotation:0.0.2` |
+| [`variant-annotation`](packages/variant-annotation) | 0.0.3 | `annotate_variants`, `variant_job_status` | `ghcr.io/lijinbio/mcp-variant-annotation:0.0.3` |
 
 <!-- END SERVERS -->
 

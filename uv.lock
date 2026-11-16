@@ -343,7 +343,7 @@ provides-extras = ["test"]
 
 [[package]]
 name = "aiscientist-mcp-variant-annotation"
-version = "0.0.2"
+version = "0.0.3"
 source = { editable = "packages/variant-annotation" }
 dependencies = [
     { name = "aiscientist-mcp-common" },

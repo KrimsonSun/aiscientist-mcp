@@ -236,10 +236,10 @@
       "server": "variant-annotation",
       "category": "variants",
       "package": "aiscientist-mcp-variant-annotation",
-      "version": "0.0.2",
+      "version": "0.0.3",
       "description": "Offline VEP and ClinVar variant annotation with reproducible analysis jobs",
       "entry_point": "variant-annotation-mcp",
-      "image": "ghcr.io/lijinbio/mcp-variant-annotation:0.0.2",
+      "image": "ghcr.io/lijinbio/mcp-variant-annotation:0.0.3",
       "path": "packages/variant-annotation",
       "tools": [
         {

@@ -113,6 +113,30 @@ def build_norm_cmd(input_vcf: str, output_vcf: str, ref_fasta: str) -> list[str]
     return ["bcftools", "norm", "-m-any", "-f", ref_fasta, "-Oz", "-o", output_vcf, input_vcf]
 
 
+def build_reheader_cmd(input_vcf: str, output_vcf: str, fai: str) -> list[str]:
+    """A ``bcftools reheader`` argv that writes the reference's contigs (from its ``.fai``) into the
+    header. ``bcftools norm`` cannot write a record whose contig the header does not declare
+    (``Invalid BCF, CONTIG id=0 not present in the header``), and a minimal VCF often has none."""
+    return ["bcftools", "reheader", "--fai", fai, "-o", output_vcf, input_vcf]
+
+
+def declares_contigs(vcf: str | Path) -> bool:
+    """Whether the VCF header has a ``##contig`` line. Reads the header only (plain or bgzipped).
+    An unreadable file counts as declared, so the pipeline's own tools report what is wrong."""
+    try:
+        with open(vcf, "rb") as probe:
+            opener = gzip.open if probe.read(2) == b"\x1f\x8b" else open
+        with opener(vcf, "rt", encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if line.startswith("##contig="):
+                    return True
+                if not line.startswith("##"):
+                    return False
+    except (OSError, EOFError):
+        return True
+    return False
+
+
 # --- SpliceAI (OpenSpliceAI) splice-disruption scoring -----------------------
 # SpliceAI predicts whether a variant creates or destroys an RNA splice site — the class of pathogenic
 # variant that VEP's protein-level predictors (SIFT/PolyPhen/CADD/AlphaMissense) miss. OpenSpliceAI is
@@ -155,14 +179,20 @@ def build_spliceai_cmd(
     full-model ``.pt`` files (trusted JHU CCB weights); ``OMP_NUM_THREADS`` bounds CPU inference.
     ``home_dir`` (a writable per-run dir) is pointed at by ``HOME``/``TORCH_HOME``/``XDG_CACHE_HOME`` so
     torch/pyfaidx have somewhere to write even under ``--containall`` (where the real HOME is unbound);
-    the ref FASTA's ``.fai`` must already exist next to it (bound read-only) so pyfaidx never rebuilds."""
+    the ref FASTA's ``.fai`` must already exist next to it (bound read-only) so pyfaidx never rebuilds.
+    When the env's own ``python`` sits next to the launcher, the launcher is run with it."""
     env_vars = ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1", f"OMP_NUM_THREADS={threads}"]
     if home_dir:
         env_vars += [f"HOME={home_dir}", f"TORCH_HOME={home_dir}", f"XDG_CACHE_HOME={home_dir}"]
+    # The launcher's first line names the interpreter by the absolute path the env was created at. An
+    # env that is mounted or reached at another path (moved, or behind a symlink the job does not see)
+    # then fails with "No such file or directory", so start it with the interpreter next to it.
+    interpreter = Path(bin_path).parent / "python"
+    launcher = [str(interpreter), bin_path] if interpreter.exists() else [bin_path]
     return [
         "env",
         *env_vars,
-        bin_path,
+        *launcher,
         "variant",
         "-R",
         ref_fasta,
@@ -569,6 +599,15 @@ def run_offline_annotation(
     ref_fasta = ref_fasta if (ref_fasta and os.path.exists(ref_fasta)) else ""
     normalized = False
     if ref_fasta:
+        fai = ref_fasta + ".fai"
+        if os.path.exists(fai) and not declares_contigs(vep_input):
+            # A header without ##contig lines (hand-made or minimal VCFs): take them from the reference.
+            reheadered = work / "reheadered.vcf.gz"
+            rcmd = build_reheader_cmd(str(vep_input), str(reheadered), fai)
+            proc = runner(rcmd)
+            if getattr(proc, "returncode", 1) != 0:
+                return {"status": "error", "error": f"bcftools reheader failed: {_tail(proc)}", "cmd": " ".join(rcmd)}
+            vep_input = reheadered
         normed = work / "normalized.vcf.gz"
         ncmd = build_norm_cmd(str(vep_input), str(normed), ref_fasta)
         proc = runner(ncmd)

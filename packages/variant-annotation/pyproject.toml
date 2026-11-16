@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiscientist-mcp-variant-annotation"
-version = "0.0.2"
+version = "0.0.3"
 description = "Offline VEP and ClinVar variant annotation with reproducible analysis jobs"
 requires-python = ">=3.11"
 license = "MIT"

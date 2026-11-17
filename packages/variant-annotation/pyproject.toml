@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiscientist-mcp-variant-annotation"
+version = "0.0.3"
+description = "Offline VEP and ClinVar variant annotation with reproducible analysis jobs"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = ["aiscientist-mcp-common>=0.0.4"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+variant-annotation-mcp = "aiscientist_mcp.variant_annotation.server:main"
+
+[tool.uv.sources]
+aiscientist-mcp-common = { workspace = true }
+
+[tool.aiscientist-mcp]
+# Category of the server; the same names as the skills registry (lijinbio/aiscientist-skills).
+category = "variants"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["aiscientist_mcp.*"]
+namespaces = true

@@ -9,8 +9,14 @@ and trust, so the bar is that its analysis has actually been run. Participation 
 ```bash
 git clone https://github.com/lijinbio/aiscientist-mcp.git && cd aiscientist-mcp
 uv sync --all-packages && uv run pytest     # or: pip install -e packages/common -e packages/<server>
-pre-commit install                           # optional: run the checks on every commit
+# Optional: run the checks on every commit, with the hook runner in its own environment.
+uv tool install --with 'virtualenv>=21.14.9' 'pre-commit>=4'
+pre-commit install
 ```
+
+Keep the hook runner outside the scientific workspace: patched `virtualenv` needs
+`packaging>=26.3`, while PaperQA's current Redis dependencies need `packaging<26`.
+CI runs Ruff and pytest directly and audits the locked workspace dependencies.
 
 ### Add a server
 

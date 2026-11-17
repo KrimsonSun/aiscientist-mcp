@@ -5,7 +5,10 @@
 members = ["packages/*"]
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.16", "pre-commit>=4"]
+dev = [
+    "pytest>=8",
+    "ruff>=0.17.4",
+]
 
 [tool.ruff]
 line-length = 120
@@ -19,5 +22,6 @@ ignore = ["E501", "S101", "S603", "S607", "S310"]
 "**/tests/**" = ["S"]
 
 [tool.pytest.ini_options]
-addopts = "-q"
+addopts = "-q --import-mode=importlib"
 testpaths = ["packages"]
+pythonpath = ["packages/visionkb-kg/tests"]

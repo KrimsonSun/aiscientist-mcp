@@ -4,10 +4,10 @@
       "server": "atlas-expression-exploration",
       "category": "single-cell",
       "package": "aiscientist-mcp-atlas-expression-exploration",
-      "version": "0.0.3",
+      "version": "0.0.4",
       "description": "MCP server: gene expression across the cell types of a single-cell atlas (scanpy)",
       "entry_point": "atlas-expression-exploration-mcp",
-      "image": "ghcr.io/lijinbio/mcp-atlas-expression-exploration:0.0.3",
+      "image": "ghcr.io/lijinbio/mcp-atlas-expression-exploration:0.0.4",
       "path": "packages/atlas-expression-exploration",
       "tools": [
         {
@@ -16,7 +16,7 @@
         },
         {
           "name": "submit_query",
-          "description": "Start a query: resolve names, then load the full atlas on a big-memory node and write query.h5ad"
+          "description": "Start a query: resolve names, then stream the atlas counts in row chunks and write query.h5ad"
         },
         {
           "name": "query_status",
@@ -45,6 +45,110 @@
         {
           "name": "list_queries",
           "description": "Queries in this server's data directory, with their state."
+        }
+      ]
+    },
+    {
+      "server": "cellqc",
+      "category": "single-cell",
+      "package": "aiscientist-mcp-cellqc",
+      "version": "0.0.5",
+      "description": "CellQC quality control for Cell Ranger deliveries with ambient correction and doublet removal",
+      "entry_point": "cellqc-mcp",
+      "image": "ghcr.io/lijinbio/mcp-cellqc:0.0.5",
+      "path": "packages/cellqc",
+      "tools": [
+        {
+          "name": "run_cellqc",
+          "description": "Run CellQC on raw and filtered Cell Ranger libraries, preserving the input delivery."
+        },
+        {
+          "name": "cellqc_job_status",
+          "description": "Poll a CellQC task, returning execution state and its QC result when available."
+        }
+      ]
+    },
+    {
+      "server": "data-utilities",
+      "category": "utilities",
+      "package": "aiscientist-mcp-data-utilities",
+      "version": "0.0.2",
+      "description": "Bounded dataset inspection and deterministic Graphviz schematics",
+      "entry_point": "data-utilities-mcp",
+      "image": "ghcr.io/lijinbio/mcp-data-utilities:0.0.2",
+      "path": "packages/data-utilities",
+      "tools": [
+        {
+          "name": "inspect_dataset",
+          "description": "Skim an uploaded file of any type and return deterministic peek evidence plus a description:"
+        },
+        {
+          "name": "make_schematic",
+          "description": "Render a conceptual workflow, pathway or mechanism as a PNG from auditable Graphviz DOT text."
+        },
+        {
+          "name": "data_utilities_job_status",
+          "description": "Poll an inspection or schematic task. COMPLETED includes its original structured result;"
+        }
+      ]
+    },
+    {
+      "server": "literature",
+      "category": "literature",
+      "package": "aiscientist-mcp-literature",
+      "version": "0.0.4",
+      "description": "MCP server: biomedical literature retrieval and grounded corpus analysis",
+      "entry_point": "literature-mcp",
+      "image": "ghcr.io/lijinbio/mcp-literature:0.0.4",
+      "path": "packages/literature",
+      "tools": [
+        {
+          "name": "literature_search",
+          "description": "Search Europe PMC for real biomedical citations. Sends the query to this public service;"
+        },
+        {
+          "name": "search_corpus",
+          "description": "Retrieve verbatim passages from the configured corpus, with PMID, page and citation."
+        },
+        {
+          "name": "deep_literature",
+          "description": "Answer a focused question with PaperQA over the configured corpus and prebuilt index."
+        },
+        {
+          "name": "extract_haploinsufficient_genes",
+          "description": "Curate genes explicitly reported as haploinsufficient in retinal disease. Preserve the"
+        },
+        {
+          "name": "literature_job_status",
+          "description": "Poll a submitted literature task. COMPLETED includes its original result; FAILED"
+        }
+      ]
+    },
+    {
+      "server": "phenotype-diagnosis",
+      "category": "annotation",
+      "package": "aiscientist-mcp-phenotype-diagnosis",
+      "version": "0.0.4",
+      "description": "Grounded phenotype mapping and evidence-backed differential diagnosis",
+      "entry_point": "phenotype-diagnosis-mcp",
+      "image": "ghcr.io/lijinbio/mcp-phenotype-diagnosis:0.0.4",
+      "path": "packages/phenotype-diagnosis",
+      "tools": [
+        {
+          "name": "map_phenotype_to_hpo",
+          "description": "Map free clinical text to the bundled HPO closed set. No model: conservative lexical mapping; ambiguous negation/family history returns needs_llm mode. Pass observed/excluded HPO IDs to downstream tools."
+        },
+        {
+          "name": "run_lirical",
+          "description": "Rank diseases with LIRICAL using grounded observed/excluded HPO terms. If a VCF and matching server Exomiser reference exist, score genotype-aware; otherwise phenotype-only. Returns original calibrated probabilities, artifacts and job IDs."
+        },
+        {
+          "name": "diagnose_disease",
+          "description": "Adjudicate LIRICAL and retrieved literature into one differential. The server's literature MCP connection can rescue uncurated candidate genes and flag contradictions. Evidence grades and ranking scores never overwrite LIRICAL probabilities; missing evidence remains ungraded."
+        },
+        {
+          "name": "phenotype_job_status",
+          "description": "Read the durable state and original result of one phenotype task, including failed jobs."
         }
       ]
     },
@@ -105,6 +209,150 @@
         {
           "name": "list_curations",
           "description": "Curations in this server's data directory, with their question, state, grades and cost."
+        }
+      ]
+    },
+    {
+      "server": "scgpt-annotation",
+      "category": "single-cell",
+      "package": "aiscientist-mcp-scgpt-annotation",
+      "version": "0.0.3",
+      "description": "GPU reference-based single-cell annotation using the validated scGPT harness",
+      "entry_point": "scgpt-annotation-mcp",
+      "image": "ghcr.io/lijinbio/mcp-scgpt-annotation:0.0.3",
+      "path": "packages/scgpt-annotation",
+      "tools": [
+        {
+          "name": "scgpt_annotate",
+          "description": "Transfer per-cell labels and confidence from an approved pretrained reference atlas using the"
+        },
+        {
+          "name": "scgpt_job_status",
+          "description": "Poll GPU annotation. COMPLETED includes predictions_csv, label counts and species provenance;"
+        }
+      ]
+    },
+    {
+      "server": "scrna-analysis",
+      "category": "single-cell",
+      "package": "aiscientist-mcp-scrna-analysis",
+      "version": "0.0.6",
+      "description": "Single-cell RNA analysis with reproducible QC, clustering, differential expression and annotation",
+      "entry_point": "scrna-analysis-mcp",
+      "image": "ghcr.io/lijinbio/mcp-scrna-analysis:0.0.6",
+      "path": "packages/scrna-analysis",
+      "tools": [
+        {
+          "name": "run_scanpy_qc",
+          "description": "REAL scanpy QC on the uploaded single-cell dataset: per-cell metrics, cell/gene filtering, normalization, log1p, and HVG selection. Writes QC violin/scatter figures and a checkpoint. Returns pre/post cell-gene counts and the thresholds used. Run this FIRST on a single matrix; for a folder of 10x Cell Ranger outputs (raw + filtered matrices) use run_cellqc instead."
+        },
+        {
+          "name": "run_clustering",
+          "description": "PCA \u2192 neighbors \u2192 Leiden clustering \u2192 UMAP on the QC'd data. Writes a UMAP figure and returns cluster count + sizes. Run AFTER run_scanpy_qc. Set `select_resolution: true` to CHOOSE the Leiden resolution by bootstrap stability instead of accepting the 1.0 default: each candidate resolution is re-clustered over resampled subsets and scored by adjusted Rand index against the full-data partition, and the FINEST resolution still clearing `stability_min` wins. Prefer this whenever cell-type labels will be assigned from the clusters \u2014 every label inherits the partition, so an unexamined resolution is an unexamined assumption in every label. It costs n_bootstrap \u00d7 len(resolution_candidates) re-clusterings, so it is opt-in; the sweep itself is capped at `max_sweep_cells`."
+        },
+        {
+          "name": "run_de",
+          "description": "Differential expression via rank_genes_groups (Wilcoxon), in EITHER of two shapes. (1) MARKERS (default): each level of `groupby` vs the rest \u2014 'what defines this cluster'. (2) CONTRAST: pass `reference` (the CONTROL level of `groupby`, e.g. \"WT\") to compare condition vs control instead of vs rest; add `stratify_by` (an EXISTING cell-type label column) to run that contrast SEPARATELY WITHIN EACH CELL TYPE. Use (2) for a KO-vs-WT / disease-vs-control DEG study whose arms have fewer than 2 replicate samples each; with >=2 samples per arm use run_pseudobulk_de instead \u2014 (2) treats cells as independent, so its p-values are pseudoreplicated. Either way do NOT hand-write the contrast in run_code, and do NOT re-cluster a dataset that already has labels. Reads `adata_clustered.h5ad` if present, otherwise `adata_qc.h5ad`, so a labeled dataset needs run_scanpy_qc ONLY (run_clustering is for unlabeled data). Writes `work/adata_de.h5ad` and CSV tables `tables/de_<key>_all.csv` (+ one per group), where <key> is `stratify_by` when stratified, else `groupby`. The tables have EXACTLY these columns: `group,gene,log2fc,pval,pval_adj,score` \u2014 if you ever read a DE table in run_code, use THOSE names (NOT Seurat-style `gene_name`/`p_val_adj`/`avg_log2FC`). A contrast also writes a volcano per group and reports `significant_by_group` (up/down counts) plus `skipped_groups` (cell types with too few cells in an arm \u2014 report those as not covered). `n_genes` caps rows per group, PER DIRECTION for a contrast."
+        },
+        {
+          "name": "run_enrichment",
+          "description": "Over-representation / pathway enrichment \u2014 OFFLINE ORA against LOCAL gene-set (.gmt) files (gseapy.enrich), NOT the Enrichr web API (the analysis host has no network). Automatically reads the top DE genes from this run's DE table (`tables/de_<groupby>_all.csv`, e.g. de_majorclass_all.csv) and runs ORA PER GROUP, writing one enrichment table + bar plot per cell class and returning the top enriched terms per group. Do NOT pass a pooled `genes` list \u2014 that collapses every class into a single 'input' group and loses the per-class pathway biology. Run AFTER run_de; it picks up whatever key run_de used (annotated classes preferred over raw leiden). When the DE table is a CONTRAST (it carries both up- and down-regulated significant genes) each group is split into '<group> (up)' and '<group> (down)' and enriched separately, so a down-regulated programme cannot be cancelled out by an up-regulated one; `split_direction: false` disables that. `gene_sets` are library names resolved to local .gmt files (default GO_Biological_Process_2023 / Reactome_2022 / MSigDB_Hallmark_2020). "
+        },
+        {
+          "name": "run_depth_matched_de",
+          "description": "Separate biology from sequencing depth. When the two arms differ in reads per cell, every ranking inherits that bias \u2014 a gene detected in more cells because more molecules were sampled looks up-regulated, and abundant-transcript pathways (translation, ribosome, RNA metabolism) move together in the deeper arm. This down-samples the deeper arm within each cell type until the per-cell UMI distributions match, re-runs the SAME Wilcoxon contrast, and Spearman-correlates the original ranking against the depth-matched one PER DIRECTION. Use it whenever the dataset profile flags a depth imbalance, and always before interpreting a pan-cell-type signature. It returns the per-direction verdict itself, so no later step needs to re-derive it: each (cell type, direction) is labelled `with_depth` (UP in the deeper arm, what depth can manufacture) or `against_depth`. With the gradient: rho >= 0.5 = preserved; rho < 0 = the ranking INVERTS once depth is equalised, a detection artefact that must not be reported as regulation; and the `depth_robust` column of `tables/depth_matched_genes.csv` marks the genes that kept their sign and >= 80% of their Wilcoxon z \u2014 the credible with-gradient set. Against the gradient the verdict is `against_depth_untestable`: depth cannot have produced those genes and this check cannot confirm them either, so their rho is NOT evidence and must not be used as a filter. Reads the raw `counts` layer run_scanpy_qc stores, and writes `tables/depth_matched_summary.csv`, `tables/depth_matched_genes.csv` and a figure. Do NOT hand-write this as run_code: correlating per-gene fold-changes against a single median library size is not a computable operation."
+        },
+        {
+          "name": "run_gsea_prerank",
+          "description": "Preranked GSEA (gseapy.prerank) over the COMPLETE ranked gene list per group \u2014 OFFLINE, against the same local .gmt files as run_enrichment. Reads the `tables/rank_<groupby>_<group>.rnk` files run_de writes (every tested gene, ranked by Wilcoxon z), so it detects coordinated shifts that no per-gene cutoff would keep, and returns a SIGNED NES (positive = up in that group) plus FDR and leading-edge genes. Writes `tables/gsea_<group>.csv` per group. Run AFTER run_de. This is a COMPLEMENT to run_enrichment, not a replacement: ORA thresholds a top-N list, GSEA walks the whole ranking, and the two use different null hypotheses \u2014 do NOT treat disagreement between them as an error, and do NOT drop a group because nothing passed FDR (report the null result)."
+        },
+        {
+          "name": "run_doublet_detection",
+          "description": "Scrublet doublet scoring on raw counts, run AFTER run_scanpy_qc and BEFORE run_clustering. Two cells in one droplet express both parents' programmes and form an 'intermediate' cluster that reads as a novel transitional cell type \u2014 this is how a single-cell analysis invents a population. Filters predicted doublets by default (`filter: false` to annotate only) and returns the rate; a rate above ~20% usually means the threshold, not the biology."
+        },
+        {
+          "name": "run_integration",
+          "description": "Correct sample/donor/batch effects before clustering. REQUIRED whenever the object holds more than one sample: without it the cells cluster by donor and every cell-type label downstream is really a donor label, with no visible symptom. `batch_key` names the obs column. Omitted method or auto preserves the deployed ComBat default; Harmony is available only when explicitly requested; the method that ACTUALLY ran is returned as `method_used`. Writes adata_integrated.h5ad and reports batch silhouette before/after \u2014 it must DROP, and a warning is returned if it does not."
+        },
+        {
+          "name": "run_pseudobulk_de",
+          "description": "Differential expression BETWEEN CONDITIONS, aggregated to one profile per sample. Use this \u2014 NOT run_de \u2014 whenever the contrast is a condition (disease vs control, treated vs untreated). run_de tests over cells, and cells from one donor are not independent replicates of that donor's condition, so its p-values are pseudoreplicated and nearly every gene comes out significant. Sums raw counts per `sample_key`, optionally within each `group_key` cell type, then filters untestably-low genes and runs DESeq2 (negative-binomial Wald, via pydeseq2; Welch t on log2 CPM as a LOUD fallback) + BH. REFUSES a group with fewer than 2 samples per arm and reports it in `skipped_groups` rather than falling back to the cell-level test. Writes `tables/de_pseudobulk_<group_key>_all.csv` (+ one complete table per group, the tested universe and per-group .rnk files), never run_de's file names, so run_enrichment and run_gsea_prerank pick the result up with NO `genes` argument (they prefer this replicated test over a cell-level one; `groupby=\"pseudobulk_<group_key>\"` names it) \u2014 do not paste a gene list into them."
+        },
+        {
+          "name": "run_composition",
+          "description": "Cell-type proportions per sample and how they shift between conditions \u2014 'which populations expand or shrink'. With `sample_key` + `condition_key` it tests on centered-log-ratio values (proportions sum to 1, so testing them raw makes every population look coupled) and needs >=2 samples per arm, otherwise it reports proportions without a test. Returns the compositional caveat with the result."
+        },
+        {
+          "name": "run_marker_annotation",
+          "description": "Assign a cell type to each cluster from marker genes. For a tissue with a curated reference (retina) pass `reference` and NO panel: the curated markers are used, in the object's species. Otherwise give a `panel` ({cell type: [symbols]}) with `discriminators` ({cell type: [2-4 lineage-SPECIFIC symbols]}); a panel whose types match a reference uses the reference automatically. Signature scores give a first-pass z-argmax; the final label comes from RAW marker expression, assigned only when that lineage's discriminators dominate AND at least one of them (one of its DEFINING markers, where the reference names them) is enriched in the cluster versus other lineages; otherwise 'Unassigned'. Returns which clusters the raw check CORRECTED, which are unassigned and why (mixed / weak / withdrawn, with each cluster's own top marker genes), labelled clusters led by another lineage's genes, and warnings (e.g. a lineage every sample of the tissue contains is missing); all belong in the report. Describe an unassigned cluster by its top markers, not by a guessed name. Writes the UMAP coloured by assigned cell type and a dot plot of the deciding markers by cell type itself: no separate figure step is needed for them."
+        },
+        {
+          "name": "scrna_job_status",
+          "description": "Poll an analysis task and return its scientific result once completed; FAILED includes its error. Never start a dependent step before COMPLETED."
+        }
+      ]
+    },
+    {
+      "server": "variant-annotation",
+      "category": "variants",
+      "package": "aiscientist-mcp-variant-annotation",
+      "version": "0.0.3",
+      "description": "Offline VEP and ClinVar variant annotation with reproducible analysis jobs",
+      "entry_point": "variant-annotation-mcp",
+      "image": "ghcr.io/lijinbio/mcp-variant-annotation:0.0.3",
+      "path": "packages/variant-annotation",
+      "tools": [
+        {
+          "name": "annotate_variants",
+          "description": "Annotate a VCF with consequence, gene, impact, population frequency and ClinVar significance."
+        },
+        {
+          "name": "variant_job_status",
+          "description": "Poll a variant annotation task; completed jobs include bounded results and full evidence paths."
+        }
+      ]
+    },
+    {
+      "server": "visionkb-kg",
+      "category": "knowledge-graph",
+      "package": "aiscientist-mcp-visionkb-kg",
+      "version": "0.0.1",
+      "description": "MCP server: VisionKB knowledge graph (read-only queries with evidence)",
+      "entry_point": "visionkb-kg-mcp",
+      "image": "ghcr.io/lijinbio/mcp-visionkb-kg:0.0.1",
+      "path": "packages/visionkb-kg",
+      "tools": [
+        {
+          "name": "search_entities",
+          "description": "Resolve a name to graph entities: exact CURIE, then exact symbol, synonym, then full-text matches."
+        },
+        {
+          "name": "get_entity",
+          "description": "One node (id, name, category, symbol, synonyms, xrefs, description) with its degree by predicate."
+        },
+        {
+          "name": "get_relationships",
+          "description": "Edges from ``subject`` and/or to ``object`` (at least one), ranked by evidence."
+        },
+        {
+          "name": "get_evidence",
+          "description": "The evidence behind one edge: ``{edge, study_results[], publications[]}``."
+        },
+        {
+          "name": "get_gene_set",
+          "description": "Genes expressed in a cell type/state, or genes associated with a disease/phenotype."
+        },
+        {
+          "name": "query_atlas_expression",
+          "description": "Per-group expression summaries from the HECA atlases (every gene x group, no threshold)."
+        },
+        {
+          "name": "find_datasets",
+          "description": "Dataset registry records matching entities and filters, ranked, with ``matched`` reasons."
+        },
+        {
+          "name": "get_release",
+          "description": "The served KG release and service state: ``/v1/health``, ``/v1/ready`` and ``/v1/release``."
         }
       ]
     }

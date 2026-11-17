@@ -25,12 +25,15 @@ Settings (environment):
   AISCI_JOB_PREFIX      prepended to the job command, e.g. "apptainer exec --bind /data image.sif"
 """
 
+import contextlib
+import fcntl
 import json
 import os
 import shlex
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import traceback
 from dataclasses import dataclass
@@ -58,19 +61,69 @@ class JobSettings:
 
 
 def read_state(jobdir):
-    p = Path(jobdir) / "state.json"
+    p = managed_file(jobdir, "state.json")
     return json.loads(p.read_text()) if p.exists() else {}
 
 
 def write_state(jobdir, state):
-    p = Path(jobdir) / "state.json"
-    tmp = p.with_suffix(".tmp")
-    tmp.write_text(json.dumps(state, indent=2))
-    tmp.replace(p)
+    write_json(jobdir, "state.json", state)
+
+
+def managed_file(jobdir, name):
+    """Runtime metadata/logs must be regular files, never links to other data."""
+    root = Path(jobdir)
+    p = root / name
+    if Path(name).name != name or root.is_symlink() or p.is_symlink() or (p.exists() and not p.is_file()):
+        raise ValueError("job metadata must be a regular file inside its workspace")
+    return p
+
+
+def write_json(jobdir, name, value):
+    """Publish complete JSON atomically; concurrent writers never share a temp file."""
+    target = managed_file(jobdir, name)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=jobdir, prefix=f".{name}.", delete=False) as stream:
+            temporary = Path(stream.name)
+            json.dump(value, stream, indent=2, allow_nan=False)
+            stream.flush()
+        managed_file(jobdir, name)
+        temporary.replace(target)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+@contextlib.contextmanager
+def _status_lock(jobdir):
+    """Serialize status changes, including the decision to resubmit a failed allocation."""
+    with managed_file(jobdir, ".status.lock").open("a") as stream:
+        fcntl.flock(stream, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(stream, fcntl.LOCK_UN)
 
 
 def _proc_start(pid):
     """Start time of ``pid`` in clock ticks since boot, or None if it is gone or a zombie."""
+    if not isinstance(pid, int) or pid <= 0:
+        return None
+    if not Path("/proc").exists():
+        # macOS has no procfs. kill(pid, 0) succeeds for zombies and cannot detect
+        # PID reuse; ps provides both a live state and a stable start identity.
+        try:
+            proc = subprocess.run(
+                ["ps", "-p", str(pid), "-o", "stat=", "-o", "lstart="],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=5,
+            )
+            fields = proc.stdout.split()
+            return "ps:" + " ".join(fields[1:]) if len(fields) > 1 and fields[0][0] not in "ZX" else None
+        except (OSError, subprocess.TimeoutExpired):
+            return None
     try:
         fields = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
     except (OSError, IndexError):
@@ -83,41 +136,63 @@ def _local_state(state):
     proc = state.get("proc", {})
     if proc.get("host") != socket.gethostname():
         return "UNKNOWN", f"job started on {proc.get('host', '?')}; check it there"
-    if proc.get("start") is None:  # no /proc (e.g. macOS): fall back to the pid alone
-        try:
-            os.kill(proc.get("pid", 0), 0)
-            return "RUNNING", ""
-        except (OSError, TypeError):
-            pass
-    elif _proc_start(proc.get("pid", 0)) == proc["start"]:
+    if proc.get("start") is not None and _proc_start(proc.get("pid", 0)) == proc["start"]:
         return "RUNNING", ""
     return "FAILED", ("job process is gone without done.json (killed, or the server or container that "
                       "started it exited); for one-shot calls use AISCI_EXECUTOR=inline or slurm")  # fmt: skip
+
+
+def _inline_state(state):
+    """An interrupted inline caller cannot remain RUNNING after its allocation dies."""
+    owner = state.get("proc", {})
+    if owner.get("host") == socket.gethostname():
+        return _local_state(state)
+    allocation = state.get("allocation_job_id")
+    if allocation:
+        try:
+            current = _slurm_state(allocation)
+        except OSError:
+            current = "UNKNOWN"
+        if current in {"PENDING", "RUNNING", "CONFIGURING", "COMPLETING", "SUSPENDED"}:
+            return current, ""
+        if current != "UNKNOWN":
+            return "FAILED", f"inline allocation ended ({current}) without done.json; submit a new task"
+    return "UNKNOWN", "inline caller liveness cannot be checked here; inspect its original host/allocation"
 
 
 def submit(cfg, cmd, jobdir, name, slurm_opts=None, extra=None):
     """Start ``cmd`` (a list) for ``jobdir``. Returns the new state."""
     jobdir = Path(jobdir)
     jobdir.mkdir(parents=True, exist_ok=True)
-    (jobdir / "done.json").unlink(missing_ok=True)
+    managed_file(jobdir, "done.json").unlink(missing_ok=True)
     full = shlex.split(cfg.prefix) + list(cmd)
     state = read_state(jobdir) | (extra or {}) | {"cmd": full, "executor": cfg.executor, "submitted": time.time()}
     if cfg.executor == "local":
-        log = open(jobdir / "job.log", "a")  # noqa: SIM115 (kept open by the child)
-        proc = subprocess.Popen(full, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
-                                start_new_session=True)  # fmt: skip
+        with managed_file(jobdir, "job.log").open("a") as log:
+            proc = subprocess.Popen(full, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+                                    start_new_session=True)  # fmt: skip
         state |= {"proc": {"host": socket.gethostname(), "pid": proc.pid, "start": _proc_start(proc.pid)},
                   "state": "RUNNING"}  # fmt: skip
     elif cfg.executor == "inline":
-        write_state(jobdir, state | {"state": "RUNNING"})
-        with open(jobdir / "job.log", "a") as log:
-            rc = subprocess.run(full, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
-                                check=False).returncode  # fmt: skip
-        done = jobdir / "done.json"
+        state["proc"] = {"host": socket.gethostname(), "pid": os.getpid(), "start": _proc_start(os.getpid())}
+        state.pop("allocation_job_id", None)
+        if allocation := os.environ.get("SLURM_JOB_ID"):
+            state["allocation_job_id"] = allocation
+        # Publish only after the child exists. A caller that cancels the
+        # process group on observing RUNNING must not race with posix_spawn
+        # and leave a newly spawned worker holding the workspace lock.
+        with (
+            managed_file(jobdir, "job.log").open("a") as log,
+            subprocess.Popen(full, stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT) as proc,
+        ):
+            write_state(jobdir, state | {"state": "RUNNING"})
+            rc = proc.wait()
+        done = managed_file(jobdir, "done.json")
         state |= json.loads(done.read_text()) if done.exists() else {"state": "FAILED", "error": f"exit {rc}"}
     else:
         opts = slurm_opts if slurm_opts is not None else cfg.slurm
-        script = jobdir / "job.sbatch"
+        script = managed_file(jobdir, "job.sbatch")
+        managed_file(jobdir, "job.log")
         script.write_text(
             "#!/usr/bin/env bash\n"
             f"#SBATCH --job-name={name[:60]} {opts}\n"
@@ -145,12 +220,21 @@ def _slurm_state(jid):
 def status(cfg, jobdir):
     """Current state; resubmits a preempted Slurm job with the fallback options."""
     jobdir = Path(jobdir)
+    with _status_lock(jobdir):
+        return _status(cfg, jobdir)
+
+
+def _status(cfg, jobdir):
     state = read_state(jobdir)
-    done = jobdir / "done.json"
+    done = managed_file(jobdir, "done.json")
     if done.exists():
         state |= json.loads(done.read_text())
     elif state.get("executor") == "local":
         state["state"], note = _local_state(state)
+        if note:
+            state["note"] = note
+    elif state.get("executor") == "inline" and state.get("state") in {"RUNNING", "UNKNOWN"}:
+        state["state"], note = _inline_state(state)
         if note:
             state["note"] = note
     elif "job_id" in state:
@@ -175,6 +259,6 @@ def record_done(jobdir, fn):
         done = {"state": "FAILED", "error": f"{type(e).__name__}: {e}"}
         traceback.print_exc()
     done["elapsed_s"] = round(time.time() - t0, 1)
-    (jobdir / "done.json").write_text(json.dumps(done))
+    write_json(jobdir, "done.json", done)
     if done["state"] != "COMPLETED":
         sys.exit(1)

@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/RCHENLAB/AiScientist",
+  "commit": "48f64a6",
+  "files": {
+    "run_scanpy_qc/tool.py": "efc34a95066989634cf15af36eb0c0bc55d716a3cbba3724ebeb093c1e04ca86",
+    "run_clustering/tool.py": "9f1267d0d05d348c1df7a2a69b554bf5c312ffcbb6afd032961419322d635b1b",
+    "run_de/tool.py": "4abcbaddf28d00c9cfaf7959a9569c8b27b86473c292deed6c16bdd7d9f6be2a",
+    "run_enrichment/tool.py": "a0fd55116c8844c0e6ab43d73a1195003b186339f0d6a7d3a0ec7a1019403f0f",
+    "run_depth_matched_de/tool.py": "99c786c0ac79c6c3f277e61ef806578a5bb75d4dbfd6511da30b1ed68159b99b",
+    "run_gsea_prerank/tool.py": "4f84c932010600dc08d4fed5e0fc2cd7578836a12aa502a502eea587348d2d03",
+    "run_doublet_detection/tool.py": "1a544823b5312f49031243bbc8f124abca81567a40f8e373566a4c962f790638",
+    "run_integration/tool.py": "e59e20ec36c9c6216e5f437695ea6d3fc203b3bdeeff7718a4ca8df885395326",
+    "run_pseudobulk_de/tool.py": "19f7d49a8a693c689abe186d9fc74f07a8b34e84b2f70a48e51fbe4974e5b2e8",
+    "run_composition/tool.py": "8f7aa64cc7b4894bfbcc68ca9b0b1d0f8ffcedfe1d3ab62eb5c7448748d4eaf3",
+    "run_marker_annotation/tool.py": "1a165cf42019d73b046bf4b1f5b9adc7a645afc9c7bd5d23112bf0f9ba0f41fa"
+  }
+}

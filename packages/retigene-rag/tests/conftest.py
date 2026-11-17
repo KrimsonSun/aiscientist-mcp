@@ -93,7 +93,7 @@ GENE_TABLE = [
 ]  # fmt: skip
 
 
-def write_gene_table(path):
+def _write_gene_table(path):
     with path.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh, delimiter="\t", lineterminator="\n")
         w.writerow(GENE_TABLE_COLUMNS)
@@ -104,6 +104,11 @@ def write_gene_table(path):
                         "Multiple" if len(funcs) > 1 else ("Single" if funcs else ""), *(funcs + [""] * 6)[:6],
                         variants, tissue, group, cell, omim, orpha])  # fmt: skip
     return path
+
+
+@pytest.fixture
+def write_gene_table():
+    return _write_gene_table
 
 
 def sentences_of(text):
@@ -139,7 +144,7 @@ def index(tmp_path):
         w.writerow(["symbol", "alias_symbol", "prev_symbol", "status"])
         for sym, alias, prev in HGNC:
             w.writerow([sym, alias, prev, "Approved"])
-    write_gene_table(root / "Full_gene_table_v9.9.tsv")
+    _write_gene_table(root / "Full_gene_table_v9.9.tsv")
     return root
 
 

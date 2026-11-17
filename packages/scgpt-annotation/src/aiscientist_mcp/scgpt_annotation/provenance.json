@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/RCHENLAB/AiScientist",
+  "commit": "48f64a6",
+  "files": {
+    "deploy/scgpt/run_infer.py": "138a5c894fe0ee19f8ff35b048ca18e022bb42151e991fdbd96c7510c6529182",
+    "src/aiscientist/gateway/scgpt_job.py": "03f0322da3937994f7dbcfaa4d5b7c6046697db92adcc11f879ae64dc8f7b805",
+    "src/aiscientist/gateway/scgpt_runner.py": "289dda889ad09dea000e473b7d33a7b8bab3dc868d7e84e3cd6601b699e8be65"
+  },
+  "external_assets": [
+    "validated scGPT_refactor harness",
+    "pretrained reference model",
+    "original torch/CUDA environment"
+  ]
+}

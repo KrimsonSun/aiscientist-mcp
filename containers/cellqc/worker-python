@@ -1,0 +1,5 @@
+#!/bin/sh
+# CellQC, Snakemake and R subprocesses must use the same frozen scientific environment.
+export PATH=/opt/conda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+unset PYTHONHOME PYTHONPATH
+exec /opt/conda/bin/python "$@"

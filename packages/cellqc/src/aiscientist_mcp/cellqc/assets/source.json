@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/lijinbio/aiscientist-skills",
+  "release": "v0.2.1",
+  "commit": "812e4661475133d84f852ab71b6f6207a7e22256",
+  "skill": "qc-snrna-with-cellqc-standalone",
+  "skill_version": "1.2.0",
+  "asset": "assets/cellqc-defaults.json",
+  "sha256": "7d4509bc9c04fa5b8284ced74618f47079bc952d3cfbb8fe4ed3ccce3e4698ce"
+}

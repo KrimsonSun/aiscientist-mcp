@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=84.2.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiscientist-mcp-cellqc"
+version = "0.0.5"
+description = "CellQC quality control for Cell Ranger deliveries with ambient correction and doublet removal"
+requires-python = ">=3.12,<3.14"
+license = "MIT"
+dependencies = ["aiscientist-mcp-common>=0.0.4", "scanpy>=1.10,<2", "anndata>=0.10,<0.14",
+                "pandas>=2", "numpy", "scipy", "matplotlib", "h5py"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+cellqc-mcp = "aiscientist_mcp.cellqc.server:main"
+
+[tool.uv.sources]
+aiscientist-mcp-common = { workspace = true }
+
+[tool.aiscientist-mcp]
+# Category of the server; the same names as the skills registry (lijinbio/aiscientist-skills).
+category = "single-cell"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["aiscientist_mcp.*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"aiscientist_mcp.cellqc" = ["parameters.json", "assets/*.json"]

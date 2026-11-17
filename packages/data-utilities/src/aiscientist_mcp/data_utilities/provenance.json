@@ -1,0 +1,8 @@
+{
+  "repository": "https://github.com/RCHENLAB/AiScientist",
+  "commit": "48f64a6",
+  "source_sha256": {
+    "src/aiscientist/tools/inspect_dataset/tool.py": "493f1a31ced22ed75ccf724fb74e3b79a9ac9db10acc359cb2abd2dc8e548ec3",
+    "src/aiscientist/tools/make_schematic/tool.py": "b5aecbded3ffc3ed50eb2c2c1d1d14ff138f22eca99a3d8655701e54ca3c5001"
+  }
+}

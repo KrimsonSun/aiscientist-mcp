@@ -10,5 +10,21 @@
 # Server owners: one line per server. Add reviewers as servers are added.
 /packages/atlas-expression-exploration/  @lijinbio
 /containers/atlas-expression-exploration/ @lijinbio
+/packages/visionkb-kg/                    @lijinbio
+/containers/visionkb-kg/                  @lijinbio
+/packages/scrna-analysis/ @lijinbio
+/containers/scrna-analysis/ @lijinbio
+/packages/cellqc/ @lijinbio
+/containers/cellqc/ @lijinbio
+/packages/literature/ @lijinbio
+/containers/literature/ @lijinbio
+/packages/variant-annotation/ @lijinbio
+/containers/variant-annotation/ @lijinbio
+/packages/phenotype-diagnosis/ @lijinbio
+/containers/phenotype-diagnosis/ @lijinbio
+/packages/scgpt-annotation/ @lijinbio
+/containers/scgpt-annotation/ @lijinbio
+/packages/data-utilities/ @lijinbio
+/containers/data-utilities/ @lijinbio
 /packages/retigene-rag/                   @lijinbio @KrimsonSun
 /containers/retigene-rag/                 @lijinbio @KrimsonSun

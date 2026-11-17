@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aiscientist-mcp-atlas-expression-exploration"
-version = "0.0.3"
+version = "0.0.4"
 description = "MCP server: gene expression across the cell types of a single-cell atlas (scanpy)"
 requires-python = ">=3.12"
 license = "MIT"

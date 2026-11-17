@@ -1,0 +1,5 @@
+#!/bin/sh
+# Scientific execution never inherits the MCP interpreter or host Python overlays.
+export PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin
+unset PYTHONHOME PYTHONPATH
+exec /usr/local/bin/python "$@"

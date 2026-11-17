@@ -19,3 +19,7 @@ updates:
     directory: /containers/atlas-expression-exploration
     schedule:
       interval: monthly
+  - package-ecosystem: docker
+    directory: /containers/visionkb-kg
+    schedule:
+      interval: monthly

@@ -58,9 +58,8 @@ def test_an_unknown_value_is_refused_with_what_the_table_holds(index):
         t.counts([], "year")
 
 
-def test_the_newest_release_in_the_index_is_used(index, tmp_path):
+def test_the_newest_release_in_the_index_is_used(index, tmp_path, write_gene_table):
     from aiscientist_mcp.retigene_rag.settings import Index
-    from conftest import write_gene_table
 
     write_gene_table(index / "Full_gene_table_v9.10.tsv")
     (index / "gene_table").mkdir()

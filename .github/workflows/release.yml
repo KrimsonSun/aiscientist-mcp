@@ -46,10 +46,16 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          IS_FORK: ${{ github.event.repository.fork }}
         run: |
           notes="Package \`${{ steps.tag.outputs.package }}\` ${{ steps.tag.outputs.version }}."
           if [[ "${{ steps.tag.outputs.image }}" == "true" ]]; then
             img="ghcr.io/${{ github.repository_owner }}/mcp-${{ steps.tag.outputs.package }}"
             notes="$notes"$'\n\n'"Image: \`$img:${{ steps.tag.outputs.version }}\`"$'\n'"Digest: \`$img@${{ steps.push.outputs.digest }}\`"
           fi
-          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes "$notes" --generate-notes
+          options=()
+          if [[ "$IS_FORK" == "true" ]]; then
+            options+=(--prerelease)
+            notes=$'Fork validation prerelease. Upstream review and deployment acceptance are separate gates.\n\n'"$notes"
+          fi
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$GITHUB_REF_NAME" --notes "$notes" --generate-notes "${options[@]}"

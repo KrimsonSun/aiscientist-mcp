@@ -1,6 +1,6 @@
 """Gene-expression query functions (scanpy). Each is also exposed as an MCP tool by server.py.
 
-extract() loads the full atlas once and writes <outdir>/query.h5ad (all cells x query genes) plus
+extract() streams the full atlas and writes <outdir>/query.h5ad (all cells x query genes) plus
 summary tables; the plot and report functions read only that file.
 """
 
@@ -18,6 +18,8 @@ import scanpy as sc
 import scipy.sparse as sp
 
 LEVELS = ("majorclass", "celltype", "region_class")
+CHUNK_ROWS = 2048
+CHUNK_NNZ = 1_000_000
 log = logging.getLogger(__name__)
 
 
@@ -110,23 +112,87 @@ def summarize(q, keys, donor, min_cells):
     return pd.concat(out, ignore_index=True)
 
 
+def _csc_query_counts(encoded, indices, n_obs):
+    """Scan CSC nonzeros once; row slicing a backed CSC first loads every column.
+
+    Library totals need every gene, but only query-column overlaps are retained.
+    Copies of overlaps keep small queries from retaining the complete read blocks.
+    Memory is bounded by one NNZ block, row totals and the requested output matrix.
+    """
+    indptr = np.asarray(encoded["indptr"])
+    intervals = [(int(indptr[index]), int(indptr[index + 1])) for index in indices]
+    values, rows = [[] for _ in indices], [[] for _ in indices]
+    totals = np.zeros(n_obs, dtype=np.float64)
+    for start in range(0, len(encoded["data"]), CHUNK_NNZ):
+        stop = min(start + CHUNK_NNZ, len(encoded["data"]))
+        data = encoded["data"][start:stop]
+        row = encoded["indices"][start:stop]
+        # add.at handles repeated row indices across columns (and duplicate
+        # entries within a sparse column) without dropping any contribution.
+        np.add.at(totals, row, data)
+        for pos, (left, right) in enumerate(intervals):
+            lo, hi = max(left, start) - start, min(right, stop) - start
+            if lo < hi:
+                values[pos].append(data[lo:hi].copy())
+                rows[pos].append(row[lo:hi].copy())
+    pointers = np.cumsum([0, *(sum(len(part) for part in column) for column in values)], dtype=np.int64)
+    values = [part for column in values for part in column]
+    rows = [part for column in rows for part in column]
+    selected = sp.csc_matrix(
+        (
+            np.concatenate(values) if values else np.empty(0, dtype=encoded["data"].dtype),
+            np.concatenate(rows) if rows else np.empty(0, dtype=encoded["indices"].dtype),
+            pointers,
+        ),
+        shape=(n_obs, len(indices)),
+    )
+    return selected.tocsr(), totals
+
+
 def extract(h5ad, genes, outdir, obs_cols, class_order, target_sum=1e4, min_cells_donor=10):
-    """Load the full atlas, keep `genes` (already resolved atlas names), write query.h5ad and tables."""
+    """Keep query genes while summing full-library counts in bounded matrix chunks."""
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
     cols = obs_cols.split(",")
     cls, typ, reg, donor = cols[:4]
-    adata = sc.read_h5ad(h5ad)  # the full matrix, in memory
-    log.info("loaded %s", adata)
-    adata.obs["total_counts"] = np.ravel(adata.X.sum(axis=1, dtype=np.float64))  # full-transcriptome library size
-    q = adata[:, genes].copy()
-    del adata
-    q.obs = q.obs[[*cols, "total_counts"]]
-    q.obsm = {"X_umap": q.obsm["X_umap"]}
-    q.uns, q.obsp, q.varm = {}, {}, {}
+    # Reading only named HDF5 elements also excludes unrelated raw/layers, which
+    # an AnnData backed reader may still materialize before the matrix is sliced.
+    with h5py.File(h5ad, "r") as handle:
+        obs = ad.io.read_elem(handle["obs"])
+        var = ad.io.read_elem(handle["var"])
+        missing = sorted(set(cols) - set(obs.columns))
+        if missing:
+            raise ValueError(f"atlas is missing observation columns {missing}; configure ATLAS_OBS_COLS")
+        if "obsm/X_umap" not in handle:
+            raise ValueError("atlas must provide obsm['X_umap']")
+        indices = var.index.get_indexer(genes)
+        if (indices < 0).any():
+            raise ValueError("query genes must be resolved against the atlas first")
+        matrix = ad.io.sparse_dataset(handle["X"]) if isinstance(handle["X"], h5py.Group) else handle["X"]
+        if getattr(matrix, "format", None) == "csc":
+            selected, totals = _csc_query_counts(handle["X"], indices, len(obs))
+        else:
+            totals = np.empty(len(obs), dtype=np.float64)
+            chunks = []
+            for start in range(0, len(obs), CHUNK_ROWS):
+                stop = min(start + CHUNK_ROWS, len(obs))
+                chunk = matrix[start:stop, :]
+                totals[start:stop] = np.ravel(chunk.sum(axis=1, dtype=np.float64))
+                chunks.append(sp.csr_matrix(chunk[:, indices]))
+            selected = sp.vstack(chunks, format="csr")
+        obs = obs[cols].copy()
+        obs["total_counts"] = totals
+        q = ad.AnnData(
+            selected,
+            obs=obs,
+            var=var.iloc[indices].copy(),
+            obsm={"X_umap": ad.io.read_elem(handle["obsm/X_umap"])},
+        )
+    log.info("extracted %s without loading the full atlas matrix", q)
     q.layers["counts"] = q.X.copy()
     # Same as sc.pp.normalize_total(target_sum) on the full matrix: divide by full-library totals.
-    q.X = sp.csr_matrix(sp.diags(target_sum / q.obs["total_counts"].to_numpy()) @ q.X, dtype=np.float32)
+    scale = np.divide(target_sum, totals, out=np.zeros_like(totals), where=totals != 0)
+    q.X = sp.csr_matrix(sp.diags(scale) @ q.X, dtype=np.float32)
     sc.pp.log1p(q)
 
     pref = [c for c in class_order.split(",") if c in set(q.obs[cls])]

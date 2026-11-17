@@ -8,7 +8,7 @@ import re
 import sys
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from aiscientist_mcp.common import jobs
 from aiscientist_mcp.common.paths import child_dir
@@ -93,7 +93,7 @@ def resolve_genes(genes: str, atlas: str = "") -> dict[str, Any]:
 
 @tool(server)
 def submit_query(genes: str, atlas: str = "", rerun: bool = False) -> dict[str, Any]:
-    """Start a query: resolve names, then load the full atlas on a big-memory node and write query.h5ad
+    """Start a query: resolve names, then stream the atlas counts in row chunks and write query.h5ad
     plus summary tables. With the Slurm or local executor it returns at once with a query_id (poll
     query_status); with the inline executor it returns when the step ends. Reuses a finished or
     running query unless rerun=True."""
@@ -133,7 +133,12 @@ def query_status(query_id: str) -> dict[str, Any]:
 
 
 @tool(server)
-def get_summary(query_id: str, level: str = "majorclass", gene: str = "", top: int = 10) -> dict[str, Any]:
+def get_summary(
+    query_id: str,
+    level: Literal["majorclass", "celltype", "region_class"] = "majorclass",
+    gene: str = "",
+    top: int = 10,
+) -> dict[str, Any]:
     """Summary rows ranked by pseudobulk CP10k. level: majorclass, celltype or region_class. Fields:
     n_cells, n_expressing, pct_expressing, mean_lognorm, pseudobulk_cp10k, n_donors, donor_median_cp10k,
     donor_q25_cp10k, donor_q75_cp10k, frac_donors_detected, rank_pseudobulk."""

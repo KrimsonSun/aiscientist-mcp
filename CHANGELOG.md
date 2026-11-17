@@ -20,7 +20,11 @@ versioned on its own ([Semantic Versioning](https://semver.org/)) and released w
   2026-11-04 (`reference_genes_reviewed.csv`, grades only). Claude Haiku (by default), any OpenAI-compatible
   endpoint, or the caller's own platform through a relay folder reads, set by environment variables; replies are cached, and a curation with the same
   terms, rules, models and corpus is reused. The index is mounted read-only (laid out as the AiScientist shared
-  dataset `retigene`); the image holds the query embedding model.
+  dataset `retigene`); the image holds the query embedding model. Lookups in the RetiGene gene table
+  (RCHENLAB/AiScientist #124): `get_gene` gives what RetiGene curates about one gene (status, inheritance,
+  phenotype and functional categories, diseases, expression, key papers), `find_genes` every gene that meets
+  the conditions given, with the count, or the counts per value of a field. The table is a release file
+  mounted with the index or named by `RETIGENE_GENE_TABLE`.
 
 - Community and maintenance files following the AiScientist skills registry: code of conduct,
   security policy, citation, editor and pre-commit configuration, CODEOWNERS, Dependabot, issue

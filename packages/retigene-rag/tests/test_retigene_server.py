@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 
-TOOLS = {"search_sentences", "search_passages", "read_passage", "submit_curation", "curation_status", "get_genes",
+TOOLS = {"get_gene", "find_genes", "search_sentences", "search_passages", "read_passage", "submit_curation", "curation_status", "get_genes",
          "get_evidence", "evaluate", "write_report", "list_curations"}  # fmt: skip
 QUESTION = "What are haploinsufficient genes in RetiGene papers?"
 

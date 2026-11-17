@@ -1,12 +1,17 @@
 # retigene-rag
 
-Questions about the RetiGene corpus: about 1,700 full-text papers on inherited retinal disease (39,563
-passages, 426,706 sentences). An agent such as Claude writes its own searches, and for "every gene with a
-property" a curation reads every sentence that states it and grades each gene from its own sentences. The
-answer is two tables, one row per gene and one row per sentence, each with a verbatim quote, PMID and page.
+Questions about inherited retinal disease genes, from two sources. The RetiGene gene table
+(https://retigene.erdc.info/) answers what RetiGene curates: a gene's inheritance, phenotype and functional
+categories, and every gene with a given combination of them. The RetiGene corpus, about 1,700 full-text
+papers (39,563 passages, 426,706 sentences), answers what the papers say: an agent such as Claude writes its
+own searches, and for "every gene with a property" a curation reads every sentence that states it and grades
+each gene from its own sentences. The curation's answer is two tables, one row per gene and one row per
+sentence, each with a verbatim quote, PMID and page.
 
 | Tool | Arguments | Returns |
 | --- | --- | --- |
+| `get_gene` | `gene` | the gene's records in the gene table: status, inheritance, phenotype categories each with its inheritance, functional categories, OMIM and Orphanet diseases, expression, key papers and whether the corpus holds them; `found: false` when RetiGene does not list it |
+| `find_genes` | `phenotypes`, `inheritance`, `functions`, `status`, `gene_class`, `cell_type`, `cell_group`, `tissue_expression`, `variant_spectrum`, `disease`, `group_by`, `limit` | every gene that meets all the conditions, with the count; with `group_by`, the count per value of one field |
 | `search_sentences` | `terms`, `gene`, `limit`, `offset` | every sentence that holds a term, as `PMID p c: sentence` lines, paged; case, spaces, hyphens and PDF ligatures ignored |
 | `search_passages` | `query`, `terms`, `top_k` | the passages nearest the query by chunk co-embedding (PubMedBERT); with `terms`, only passages that hold one are ranked |
 | `read_passage` | `pmid`, `chunk` | the whole passage with its citation, title and DOI |
@@ -17,6 +22,14 @@ answer is two tables, one row per gene and one row per sentence, each with a ver
 | `evaluate` | `curation_id`, `reference` | A recall (all, ocular, syndromic), B listed apart, N listed, pass flags, against the curator reference |
 | `write_report` | `curation_id` | `report.md`: the A genes, the B genes apart, the run |
 | `list_curations` | none | `curations` |
+
+**The gene table** (`get_gene`, `find_genes`) is a RetiGene release file, `Full_gene_table_v<version>.tsv`,
+read as released (RCHENLAB/AiScientist #124). The server takes the file named by `RETIGENE_GENE_TABLE`, else the
+highest release in the index folder or its `gene_table/` folder, and every answer names the release. The file
+is not part of this package: get it from RetiGene. Inheritance is given as AR, AD, XL and MT; a value the
+table does not hold is refused with the values it does hold. A symbol can have two records (established for
+one phenotype, a candidate for another), and a few records are loci. A gene's key papers are where a search
+starts, not a filter: in the corpus, the statements about a gene are often in papers about other genes.
 
 **The curation** (`submit_curation`) is the corpus-wide scan of RCHENLAB/AiScientist #95, with the
 sentence grading of #99 (Ziyao Ma, rules revision 17):
@@ -53,6 +66,7 @@ cost is the platform's own figure.
 | Variable | Meaning | Default |
 | --- | --- | --- |
 | `RETIGENE_INDEX` | the index, read-only, laid out as the AiScientist shared dataset `retigene` (`mechanism_cache/sentences.jsonl`, `chunks.jsonl`, `chunk_vecs.npy`, `manifest.csv`, `hgnc_complete_set.txt`) | required |
+| `RETIGENE_GENE_TABLE` | a RetiGene gene table release (`Full_gene_table_v<version>.tsv`) for `get_gene` and `find_genes` | the highest release in the index folder or its `gene_table/` |
 | `RETIGENE_PROVIDER` | `anthropic` (Claude), `openai` (any OpenAI-compatible endpoint) or `relay` (the caller's platform answers each prompt, see below) | `anthropic` |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_BASE_URL` | the Claude key (and a proxy) | for `anthropic` |
 | `RETIGENE_BASE_URL`, `RETIGENE_API_KEY` | the endpoint (`http://host:port/v1`) and its key; `RETIGENE_OPENAI_BODY` is JSON merged into each request (the temperature is the endpoint's default, as for Claude) | for `openai` |
@@ -111,4 +125,4 @@ load and the curation. Input tokens include the cached system prompts (about thr
   `search_passages` 15 s per call (most of it the corpus and model load), and its query vectors equal the
   stored chunk vectors (cosine 1.000000 on 8 passages).
 
-The offline tests use a stand-in model and embedder (`offline-test`): 18 tests, about 10 s.
+The offline tests use a stand-in model and embedder (`offline-test`): 24 tests, about 10 s.

@@ -1,5 +1,8 @@
-"""MCP server retigene-rag (stdio): search tools and a corpus-wide curation over the RetiGene papers.
+"""MCP server retigene-rag (stdio): lookups in the RetiGene gene table, and search tools and a corpus-wide
+curation over the RetiGene papers.
 
+For what RetiGene itself curates (a gene's inheritance, phenotype or functional categories, the genes with a
+given combination of them, how many): get_gene, find_genes.
 Flow for "every gene with a property": search_sentences -> submit_curation (curation_status until
 COMPLETED) -> get_genes, get_evidence -> write_report; evaluate scores it against the curator reference.
 For a question about one topic: search_passages, read_passage, search_sentences.
@@ -20,9 +23,18 @@ from .settings import Settings
 
 server = make_server(
     SERVER_NAME,
-    "Search tools and a corpus-wide curation over the RetiGene corpus: about 1,700 full-text papers on "
-    "inherited retinal disease (39,563 passages, 426,706 sentences). Use only what the tools return, and cite "
-    "the PMID and page they give.\n"
+    "Two sources on inherited retinal disease genes. (1) The RetiGene gene table, a curated database: for each "
+    "gene its status, inheritance, phenotype categories, functional categories, named diseases, expression and "
+    "key papers. (2) The RetiGene corpus: about 1,700 full-text papers, the key papers of those genes (39,563 "
+    "passages, 426,706 sentences). Use only what the tools return, and cite the PMID and page they give.\n"
+    "- For what RetiGene curates, use the table, never the papers: get_gene for one gene's facts, find_genes "
+    "for every gene that meets conditions (phenotype, inheritance, function, expression, ...), with the count, "
+    "or the counts per value with group_by. The table answers these exactly and completely; a gene it does "
+    "not list is not in RetiGene. Say which release the answer is from.\n"
+    "- For what the papers say (mechanisms, evidence, findings), use the corpus tools below. To ask it about a "
+    "set of genes the table defines, call find_genes first, then search for those genes. A gene's key papers "
+    "(get_gene) are where to start, not where to stop: statements about a gene are often in papers about "
+    "other genes, so also search the whole corpus with search_sentences(gene=...).\n"
     "- For a question that asks for every gene with a property (for example haploinsufficient genes): "
     "search_sentences with the property's own words and their variants (e.g. 'haploinsufficien', 'one "
     "functional copy') to see what the corpus says, then submit_curation once with those terms. It reads "
@@ -148,6 +160,113 @@ def _completed(cfg, curation_id):
     if st.get("state") != "COMPLETED" or not (d / "genes.csv").is_file():
         raise ValueError(f"curation {curation_id} is {st.get('state')}, not COMPLETED: poll curation_status")
     return d
+
+
+# ---- gene table ------------------------------------------------------------------------------------
+
+
+@functools.lru_cache(maxsize=2)
+def _gene_table_at(path: str, stamp: tuple):
+    from .gene_table import GeneTable
+
+    return GeneTable.load(path)
+
+
+def _gene_table(cfg):
+    path = cfg.index.gene_table
+    if not path or not path.is_file():
+        raise ValueError("no RetiGene gene table: set RETIGENE_GENE_TABLE to a release file "
+                         "(Full_gene_table_v<version>.tsv), or put it in the index folder")  # fmt: skip
+    st = path.stat()
+    return _gene_table_at(str(path), (st.st_size, st.st_mtime_ns))
+
+
+def _in_corpus(cfg) -> dict:
+    """PMID -> paper, for the papers whose full text the corpus holds ({} when the index has no manifest)."""
+    index = cfg.index
+    return _manifest(str(index.manifest), index.fingerprint()) if index.manifest.is_file() else {}
+
+
+@tool(server)
+def get_gene(gene: str) -> dict[str, Any]:
+    """Everything the RetiGene gene table curates about one gene: status (established, candidate with the
+    reason, or discarded), class, inheritance, each phenotype category with its own inheritance, functional
+    categories, named diseases (OMIM with inheritance and MIM number, Orphanet), variant spectrum, bulk and
+    single-cell expression, year of first publication, and its key papers with whether the corpus holds
+    their full text. A symbol can have two records. found=false means RetiGene does not list the gene (with
+    the similar symbols it does list); that is an answer, not an error."""
+    cfg = Settings.from_env()
+    with _call():
+        table = _gene_table(cfg)
+        symbol = " ".join(str(gene or "").split())
+        if not symbol or len(symbol) > 40:
+            raise ValueError("gene must be one symbol of 1-40 characters")
+        records = table.get(symbol)
+        if not records:
+            return {"release": table.release(), "gene": symbol, "found": False, "similar": table.similar(symbol),
+                    "note": f"RetiGene v{table.version} has no record for {symbol}"}  # fmt: skip
+        papers = _in_corpus(cfg)
+        out = []
+        for r in records:
+            out.append({
+                "gene": r.gene, "status": r.status, "class": r.gene_class, "is_locus": r.is_locus,
+                "candidate_reason": r.candidate_reason,
+                "inheritance": list(r.inheritance),
+                "phenotypes": [{"phenotype": p, "inheritance": list(ms)} for p, ms in r.phenotypes],
+                "functions": list(r.functions),
+                "diseases": list(r.diseases),
+                "year_first_publication": r.year_first_publication,
+                "variant_spectrum": r.variant_spectrum,
+                "tissue_expression": r.tissue_expression,
+                "cell_group": r.cell_group, "cell_type": r.cell_type,
+                "key_papers": [{"pmid": p, "in_corpus": p in papers, "year": papers.get(p, {}).get("year", ""),
+                                "title": papers.get(p, {}).get("title", "")[:160]} for p in r.pmids],
+            })  # fmt: skip
+        return {"release": table.release(), "gene": symbol, "found": True, "records": out}
+
+
+@tool(server)
+def find_genes(phenotypes: list[str] | None = None, inheritance: list[str] | None = None,
+               functions: list[str] | None = None, status: str = "established", gene_class: str = "",
+               cell_type: str = "", cell_group: str = "", tissue_expression: str = "", variant_spectrum: str = "",
+               disease: str = "", group_by: str = "", limit: int = 40) -> dict[str, Any]:  # fmt: skip
+    """Every gene in the RetiGene gene table that meets ALL the conditions given, with the exact count; the
+    list is complete, not a sample. phenotypes: RetiGene's categories (RP, LCA, CD/CRD, MD, CSNB, CVD, EVR,
+    Optic atrophy, OCA / foveal hypoplasia, BBS, Joubert syndrome, USH/USH-like, SLS/NPHP, OA syndromic, Other
+    syndromic, Other non-syndromic); a gene must have every one listed. inheritance: AR, AD, XL (X-linked),
+    MT (mitochondrial); given with phenotypes, each listed phenotype must have each listed mode (RP with AD
+    and AR = RP in both forms). functions: functional categories (Cilium, RNA splicing, ...), all required.
+    status: established (default), candidate, discarded, or any. gene_class, cell_type (single-cell
+    specificity, e.g. 'Rod + Cone'), cell_group, tissue_expression, variant_spectrum: the table's own values;
+    a value the table does not hold is refused with the values it does hold. disease: words of an OMIM or
+    Orphanet disease name, or a MIM / ORPHA number. group_by: instead of reading the list, count the matching
+    genes per value of one field (status, gene_class, inheritance, phenotype, function, variant_spectrum,
+    tissue_expression, cell_group, cell_type). `genes` always holds every matching symbol; `rows` gives the
+    first `limit` of them (at most 200) with inheritance, phenotypes and functions. No condition at all lists
+    every established gene."""
+    from .gene_table import FIELDS
+
+    cfg = Settings.from_env()
+    with _call():
+        table = _gene_table(cfg)
+        got = table.find(
+            status=" ".join(str(status or "").split()).lower(),
+            phenotypes=_strings(phenotypes, 5),
+            inheritance=_strings(inheritance, 4),
+            functions=_strings(functions, 6),
+            disease=" ".join(str(disease or "").split())[:120],
+            gene_class=gene_class, cell_type=cell_type, cell_group=cell_group,
+            tissue_expression=tissue_expression, variant_spectrum=variant_spectrum,
+        )  # fmt: skip
+        rows = got["records"]
+        genes = list(dict.fromkeys(r.gene for r in rows))
+        out = {"release": table.release(), "filters": got["filters"], "total_genes": len(genes),
+               "loci": [g for g in genes if g.lower().endswith(" locus")]}  # fmt: skip
+        if group_by:
+            name = " ".join(str(group_by).split()).lower()
+            return out | {"group_by": name, "holds": FIELDS.get(name, ""), "counts": table.counts(rows, name)}
+        lim = max(1, min(int(limit), 200))
+        return out | {"genes": genes, "rows": [r.line() for r in rows[:lim]], "rows_clipped": len(rows) > lim}
 
 
 # ---- search ----------------------------------------------------------------------------------------

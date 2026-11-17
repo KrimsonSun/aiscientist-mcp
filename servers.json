@@ -59,6 +59,14 @@
       "path": "packages/retigene-rag",
       "tools": [
         {
+          "name": "get_gene",
+          "description": "Everything the RetiGene gene table curates about one gene: status (established, candidate with the"
+        },
+        {
+          "name": "find_genes",
+          "description": "Every gene in the RetiGene gene table that meets ALL the conditions given, with the exact count; the"
+        },
+        {
           "name": "search_sentences",
           "description": "Keyword search over every sentence of the corpus. Returns ALL sentences that hold any of the terms, one"
         },

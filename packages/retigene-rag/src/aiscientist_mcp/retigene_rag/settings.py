@@ -3,6 +3,7 @@
 import hashlib
 import json
 import os
+import re
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,6 +15,7 @@ EMBEDDING_MODEL = "NeuML/pubmedbert-base-embeddings"
 # The revision that made the RetiGene chunk vectors; the image holds it, so queries embed offline.
 EMBEDDING_REVISION = "b79526d6ef3645e0df4530322e266f24c829f5ef"
 MANIFESTS = ("manifest.csv", "paperqa_manifest.csv")
+GENE_TABLE_GLOB = "Full_gene_table_v*.tsv"
 
 
 @dataclass(frozen=True)
@@ -21,12 +23,14 @@ class Index:
     """The corpus index, mounted read-only. ``mechanism_cache/sentences.jsonl`` (one sentence per line:
     sid ``pmid:chunk:sent``, pmid, chunk, sent, page, text, prev, next), ``mechanism_cache/chunks.jsonl``
     (one passage per line: pmid, chunk, page, text), ``mechanism_cache/chunk_vecs.npy`` (one L2-normalised
-    embedding per passage), ``manifest.csv`` (doc_id, citation, title, year, doi) and
-    ``hgnc_complete_set.txt``. A version of the AiScientist shared dataset ``retigene`` is such a folder,
+    embedding per passage), ``manifest.csv`` (doc_id, citation, title, year, doi),
+    ``hgnc_complete_set.txt`` and, for the gene lookups, a RetiGene gene table release
+    (``Full_gene_table_v<version>.tsv``, here or in ``gene_table/``). A version of the AiScientist shared dataset ``retigene`` is such a folder,
     with its ``manifest.json`` of checksums."""
 
     root: Path
     hgnc_fallback: Path  # used when the index has no HGNC table; downloaded on first use
+    gene_table_file: Path | None = None  # RETIGENE_GENE_TABLE; else the newest release found in the index
 
     @property
     def sentences(self):
@@ -43,6 +47,21 @@ class Index:
     @property
     def manifest(self):
         return next((self.root / m for m in MANIFESTS if (self.root / m).is_file()), self.root / MANIFESTS[0])
+
+    @property
+    def gene_table(self) -> Path | None:
+        """The RetiGene gene table release to look genes up in: the file named by RETIGENE_GENE_TABLE, else
+        the highest ``Full_gene_table_v*.tsv`` in the index or its ``gene_table/`` folder; None when there
+        is none (the lookup tools then say so, and the search tools work as before)."""
+        if self.gene_table_file:
+            return self.gene_table_file
+        found = [p for d in (self.root, self.root / "gene_table") if d.is_dir() for p in d.glob(GENE_TABLE_GLOB)]
+
+        def release(p: Path):
+            m = re.search(r"v(\d+(?:\.\d+)+)", p.name)
+            return tuple(int(x) for x in m.group(1).split(".")) if m else ()
+
+        return max(found, key=release, default=None)
 
     def check(self):
         missing = [p.name for p in (self.sentences, self.chunks) if not p.is_file()]
@@ -104,8 +123,10 @@ class Settings:
     def from_env(cls):
         e = os.environ.get
         data_dir = Path(e("AISCI_DATA_DIR", "./aiscientist-mcp-data")).resolve() / SERVER_NAME
+        table = e("RETIGENE_GENE_TABLE", "")
         index = Index(Path(e("RETIGENE_INDEX", "")).expanduser(),
-                      Path(e("RETIGENE_HGNC", str(data_dir / "hgnc_complete_set.txt"))))  # fmt: skip
+                      Path(e("RETIGENE_HGNC", str(data_dir / "hgnc_complete_set.txt"))),
+                      Path(table).expanduser() if table else None)  # fmt: skip
         return cls(
             index=index,
             data_dir=data_dir,
